@@ -1,116 +1,41 @@
-# Telegram iOS Source Code Compilation Guide
+# Mokagram iOS
 
-We welcome all developers to use our API and source code to create applications on our platform.
-There are several things we require from **all developers** for the moment.
+Отдельная iOS-основа Mokagram в [kapustaltd](https://github.com/kapustaltd/mokagram-ios).
+Основана на официальном [Telegram iOS](https://github.com/TelegramMessenger/Telegram-iOS),
+релиз `release-13.0.0`. История upstream сохранена. Функции Desktop Mokagram пока не перенесены.
+Название приложения и интерфейс пока остаются upstream.
 
-# Creating your Telegram Application
+## Сборка IPA
 
-1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
-2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
-3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
-3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
-4. Please remember to publish **your** code too in order to comply with the licences.
+Откройте **Actions → Build Mokagram IPA → Run workflow** на ветке `main`.
+Сборка запускается вручную на `macos-26` с Xcode 26.6 и Bazel из `versions.json`.
+Конфигурация — `debug_arm64`, для настоящего iPhone/iPad, не для симулятора.
+После успешного запуска скачайте артефакт **Mokagram-unsigned-ipa**:
+`Mokagram-unsigned.ipa` и его SHA-256. Срок хранения — 14 дней.
+Первый запуск компилирует зависимости и может занять несколько часов.
 
-# Quick Compilation Guide
+По умолчанию используются тестовые API ID `17349` и API hash из Desktop Mokagram
+(`docs/api_credentials.md`). Для своей пары добавьте **оба** repository Secrets:
+`TELEGRAM_API_ID` и `TELEGRAM_API_HASH` с https://my.telegram.org/apps.
+Тестовая пара имеет ограничения Telegram API и может давать ошибки входа.
 
-## Get the Code
+Сборочный скрипт создаёт одноразовый самоподписанный сертификат и placeholder-профили.
+Они нужны упаковщику, но **не позволяют установить IPA на устройство**.
+Перед установкой переподпишите IPA своей Apple-учётной записью через инструмент sideload.
+App Groups, расширения и push требуют совместимых provisioning profiles и entitlements;
+работа этих возможностей после сторонней переподписи не проверена.
+Настоящая distribution-подпись и публикация в App Store пока не настроены.
 
-```
-git clone --recursive -j8 https://github.com/TelegramMessenger/Telegram-iOS.git
-```
+## Локальная сборка на macOS
 
-## Setup Xcode
-
-Install Xcode (directly from https://developer.apple.com/download/applications or using the App Store).
-
-## Adjust Configuration
-
-1. Generate a random identifier:
-```
-openssl rand -hex 8
-```
-2. Create a new Xcode project. Use `Telegram` as the Product Name. Use `org.{identifier from step 1}` as the Organization Identifier.
-3. Open `Keychain Access` and navigate to `Certificates`. Locate `Apple Development: your@email.address (XXXXXXXXXX)` and double tap the certificate. Under `Details`, locate `Organizational Unit`. This is the Team ID.
-4. Edit `build-system/template_minimal_development_configuration.json`. Use data from the previous steps.
-
-## Generate an Xcode project
-
-```
-python3 build-system/Make/Make.py \
-    --cacheDir="$HOME/telegram-bazel-cache" \
-    generateProject \
-    --configurationPath=build-system/template_minimal_development_configuration.json \
-    --xcodeManagedCodesigning
+```sh
+git clone --recursive https://github.com/kapustaltd/mokagram-ios.git
+cd mokagram-ios
 ```
 
-# Advanced Compilation Guide
+Используйте Xcode из `versions.json`. Подробности о сборке и настоящей подписи —
+в [инструкции upstream](docs/upstream-build.md). Конфигурация приложения —
+`build-system/mokagram/configuration.json`; генерируемые файлы находятся в игнорируемом
+`build-input/mokagram/`. Desktop-репозиторий: https://github.com/kapustaltd/mokagram.
 
-## Xcode
-
-1. Copy and edit `build-system/appstore-configuration.json`.
-2. Copy `build-system/fake-codesigning`. Create and download provisioning profiles, using the `profiles` folder as a reference for the entitlements.
-3. Generate an Xcode project:
-```
-python3 build-system/Make/Make.py \
-    --cacheDir="$HOME/telegram-bazel-cache" \
-    generateProject \
-    --configurationPath=configuration_from_step_1.json \
-    --codesigningInformationPath=directory_from_step_2
-```
-
-## IPA
-
-1. Repeat the steps from the previous section. Use distribution provisioning profiles.
-2. Run:
-```
-python3 build-system/Make/Make.py \
-    --cacheDir="$HOME/telegram-bazel-cache" \
-    build \
-    --configurationPath=...see previous section... \
-    --codesigningInformationPath=...see previous section... \
-    --buildNumber=100001 \
-    --configuration=release_arm64
-```
-
-# FAQ
-
-## Xcode is stuck at "build-request.json not updated yet"
-
-Occasionally, you might observe the following message in your build log:
-```
-"/Users/xxx/Library/Developer/Xcode/DerivedData/Telegram-xxx/Build/Intermediates.noindex/XCBuildData/xxx.xcbuilddata/build-request.json" not updated yet, waiting...
-```
-
-Should this occur, simply cancel the ongoing build and initiate a new one.
-
-## Telegram_xcodeproj: no such package 
-
-Following a system restart, the auto-generated Xcode project might encounter a build failure accompanied by this error:
-```
-ERROR: Skipping '@rules_xcodeproj_generated//generator/Telegram/Telegram_xcodeproj:Telegram_xcodeproj': no such package '@rules_xcodeproj_generated//generator/Telegram/Telegram_xcodeproj': BUILD file not found in directory 'generator/Telegram/Telegram_xcodeproj' of external repository @rules_xcodeproj_generated. Add a BUILD file to a directory to mark it as a package.
-```
-
-If you encounter this issue, re-run the project generation steps in the README.
-
-
-# Tips
-
-## Codesigning is not required for simulator-only builds
-
-Add `--disableProvisioningProfiles`:
-```
-python3 build-system/Make/Make.py \
-    --cacheDir="$HOME/telegram-bazel-cache" \
-    generateProject \
-    --configurationPath=path-to-configuration.json \
-    --codesigningInformationPath=path-to-provisioning-data \
-    --disableProvisioningProfiles
-```
-
-## Versions
-
-Each release is built using a specific Xcode version (see `versions.json`). The helper script checks the versions of the installed software and reports an error if they don't match the ones specified in `versions.json`. It is possible to bypass these checks:
-
-```
-python3 build-system/Make/Make.py --overrideXcodeVersion build ... # Don't check the version of Xcode
-```
+Исходные лицензии и уведомления Telegram и зависимостей сохранены в их файлах.

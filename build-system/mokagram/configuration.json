@@ -1,0 +1,14 @@
+{
+  "bundle_id": "ltd.kapusta.mokagram",
+  "api_id": "17349",
+  "api_hash": "344583e45741c457fe1862106095a5eb",
+  "team_id": "MOKAGRAM00",
+  "app_center_id": "0",
+  "is_internal_build": "true",
+  "is_appstore_build": "false",
+  "appstore_id": "0",
+  "app_specific_url_scheme": "mokagram",
+  "premium_iap_product_id": "",
+  "enable_siri": false,
+  "enable_icloud": false
+}
