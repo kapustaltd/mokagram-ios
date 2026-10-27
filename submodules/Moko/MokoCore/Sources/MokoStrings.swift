@@ -6,9 +6,14 @@ import Foundation
 public enum MokoStrings {
     private static let russianFamily: Set<String> = ["ru", "uk", "be"]
 
-    public static func tr(_ russian: String, languageCode: String) -> String {
+    /// Whether this interface language shows the Russian text as is.
+    public static func isRussianFamily(languageCode: String) -> Bool {
         let base = languageCode.split(separator: "-").first.map { String($0).lowercased() } ?? ""
-        if russianFamily.contains(base) {
+        return russianFamily.contains(base)
+    }
+
+    public static func tr(_ russian: String, languageCode: String) -> String {
+        if isRussianFamily(languageCode: languageCode) {
             return russian
         }
         return mokoEnglishTable[russian] ?? russian

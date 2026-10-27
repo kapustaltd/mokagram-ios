@@ -14,6 +14,7 @@ import TelegramStringFormatting
 import PeerNameColorItem
 import WalletContext
 import MokoCore
+import MokoSettingsUI
 
 enum SettingsSection: Int, CaseIterable {
     case edit
@@ -27,8 +28,7 @@ enum SettingsSection: Int, CaseIterable {
     case advanced
     case payment
     case extra
-    case mokoPrivacy
-    case mokoSnippets
+    case moko
     case support
 }
 
@@ -345,40 +345,8 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         }
     }
     
-    let isRussian = presentationData.strings.baseLanguageCode == "ru"
-    let accountId = context.account.peerId.toInt64()
-    items[.mokoPrivacy]!.append(PeerInfoScreenSwitchItem(id: 0, text: isRussian ? "Скрывать действия в чате" : "Hide chat activity", value: MokoPrivacySettings.storedFlags(accountId: accountId).typing, toggled: { value in
-        MokoPrivacySettings.setHideTyping(value, accountId: accountId)
-        interaction.requestLayout(true)
-    }))
-    items[.mokoPrivacy]!.append(PeerInfoScreenCommentItem(id: 1, text: isRussian ? "Не отправлять статусы набора, записи и загрузки с этого устройства. На другие устройства и статус «в сети» настройка не влияет." : "Do not send typing, recording, or upload activity from this device. This does not affect other devices or your online status."))
-    items[.mokoPrivacy]!.append(PeerInfoScreenSwitchItem(id: 2, text: isRussian ? "Скрывать просмотры историй" : "Hide story views", value: MokoPrivacySettings.storedFlags(accountId: accountId).stories, toggled: { value in
-        MokoPrivacySettings.setHideStoryViews(value, accountId: accountId)
-        interaction.requestLayout(true)
-    }))
-    items[.mokoPrivacy]!.append(PeerInfoScreenCommentItem(id: 3, text: isRussian ? "Действует только на этом устройстве и не отменяет уже отправленные просмотры. Реакции и ответы могут раскрыть просмотр. После отключения просмотр новых историй может отметить предыдущие как просмотренные." : "Applies only on this device and cannot undo views already sent. Reactions and replies can reveal your view. After turning this off, viewing newer stories may mark earlier ones as seen."))
-    items[.mokoPrivacy]!.append(PeerInfoScreenSwitchItem(id: 4, text: isRussian ? "Не отправлять статус «в сети»" : "Suppress online updates", value: MokoPrivacySettings.storedFlags(accountId: accountId).online, toggled: { value in
-        MokoPrivacySettings.setSuppressOnlineUpdates(value, accountId: accountId)
-        interaction.requestLayout(true)
-    }))
-    items[.mokoPrivacy]!.append(PeerInfoScreenCommentItem(id: 5, text: isRussian ? "Приложение отправит запрос о выходе из сети и перестанет обновлять статус. Другие устройства и действия в Telegram могут раскрыть вашу активность." : "The app will request offline status and stop refreshing online presence. Other devices and Telegram activity may still reveal that you are active."))
-    items[.mokoPrivacy]!.append(PeerInfoScreenSwitchItem(id: 6, text: isRussian ? "Не читать при открытии чата" : "Don't read chats automatically", value: MokoPrivacySettings.storedFlags(accountId: accountId).read, toggled: { value in
-        MokoPrivacySettings.setSuppressAutomaticRead(value, accountId: accountId)
-        interaction.requestLayout(true)
-    }))
-    items[.mokoPrivacy]!.append(PeerInfoScreenCommentItem(id: 7, text: isRussian ? "Останавливает автоматическую отметку при просмотре чатов и обсуждений. Ручная отметка, уведомления, прослушивание медиа и другие устройства могут отправить прочтение." : "Stops automatic read marks while viewing chats and discussions. Manual actions, notifications, playing media and other devices may still send read receipts."))
-    items[.mokoSnippets]!.append(PeerInfoScreenDisclosureItem(id: 0, text: isRussian ? "Сниппеты mokaGram" : "mokaGram snippets", icon: PresentationResourcesSettings.settings, action: {
-        guard let presenter = interaction.getController()?.view.window?.rootViewController else { return }
-        MokoSnippetSettings.show(presenter: presenter, accountId: accountId, isRussian: isRussian)
-    }))
-    items[.mokoSnippets]!.append(PeerInfoScreenSwitchItem(id: 1, text: isRussian ? "Быстрые команды" : "Quick commands", value: MokoQuickCommands.enabled(accountId: accountId), toggled: { value in
-        MokoQuickCommands.setEnabled(value, accountId: accountId)
-        interaction.requestLayout(true)
-    }))
-    items[.mokoSnippets]!.append(PeerInfoScreenCommentItem(id: 2, text: isRussian ? "Команды: .calc, .id, .snip, .tag, .note, .archive, .unarchive, .mute, .unmute и .save. .mute меняет уведомления чата; ограничения участников не поддерживаются. Архив и уведомления синхронизируются с Telegram." : "Commands: .calc, .id, .snip, .tag, .note, .archive, .unarchive, .mute, .unmute and .save. .mute changes chat notifications; participant restrictions are not supported. Archive and notification settings sync with Telegram."))
-    items[.mokoSnippets]!.append(PeerInfoScreenDisclosureItem(id: 3, text: isRussian ? "Алиасы команд" : "Command aliases", icon: PresentationResourcesSettings.settings, action: {
-        guard let presenter = interaction.getController()?.view.window?.rootViewController else { return }
-        MokoSnippetSettings.showAliases(presenter: presenter, accountId: accountId, isRussian: isRussian)
+    items[.moko]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "mokaGram", icon: PresentationResourcesSettings.settings, action: {
+        interaction.getController()?.push(mokoSettingsController(context: context))
     }))
 
     items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.Settings_Support, icon: PresentationResourcesSettings.support, action: {

@@ -3,8 +3,8 @@ import TelegramCore
 import MokoCore
 
 // The editor currently stores plain text; existing formatting around a trigger is preserved.
-enum MokoSnippetSettings {
-    static func showAliases(presenter: UIViewController, accountId: Int64, isRussian: Bool) {
+public enum MokoSnippetSettings {
+    public static func showAliases(presenter: UIViewController, accountId: Int64, isRussian: Bool) {
         let values = MokoQuickCommands.aliases(accountId: accountId)
         let list = values.keys.sorted().map { ".\($0) = \(values[$0] ?? "")" }.joined(separator: "\n")
         let help = isRussian ? "Команды: calc, id, snip, tag, note, archive, unarchive, mute, unmute, save. Пустая команда удаляет алиас." : "Commands: calc, id, snip, tag, note, archive, unarchive, mute, unmute, save. An empty command removes the alias."
@@ -30,7 +30,7 @@ enum MokoSnippetSettings {
         presenter.present(alert, animated: true)
     }
 
-    static func show(presenter: UIViewController, accountId: Int64, isRussian: Bool) {
+    public static func show(presenter: UIViewController, accountId: Int64, isRussian: Bool) {
         let title = isRussian ? "Сниппеты mokaGram" : "mokaGram snippets"
         let text = isRussian ? "Введите ;имя в обычном текстовом сообщении, чтобы подставить сохранённый текст. Сниппеты хранятся на этом устройстве." : "Type ;name in an ordinary text message to insert saved text. Snippets are stored on this device."
         let alert = UIAlertController(title: title, message: text, preferredStyle: .alert)

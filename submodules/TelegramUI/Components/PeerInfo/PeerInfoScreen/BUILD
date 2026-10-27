@@ -11,6 +11,7 @@ swift_library(
     ],
     deps = [
         "//submodules/Moko/MokoCore",
+        "//submodules/Moko/MokoSettingsUI",
         "//submodules/UrlWhitelist",
         "//submodules/AccountContext",
         "//submodules/LottieSettings:LottieSettings",
