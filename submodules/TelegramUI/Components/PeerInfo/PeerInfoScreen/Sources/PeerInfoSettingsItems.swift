@@ -13,6 +13,7 @@ import DeviceAccess
 import TelegramStringFormatting
 import PeerNameColorItem
 import WalletContext
+import MokoCore
 
 enum SettingsSection: Int, CaseIterable {
     case edit

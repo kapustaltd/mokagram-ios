@@ -3,6 +3,7 @@ import TelegramApi
 import Postbox
 import SwiftSignalKit
 import MtProtoKit
+import MokoCore
 
 private typealias SignalKitTimer = SwiftSignalKit.Timer
 
@@ -25,8 +26,8 @@ private final class AccountPresenceManagerImpl {
         self.network = network
         self.accountId = accountId
 
-        self.privacyObserver = NotificationCenter.default.addObserver(forName: MokoPrivacySettings.onlineChanged, object: nil, queue: nil, using: { [weak self] notification in
-            guard let self, let changedAccountId = notification.userInfo?["accountId"] as? Int64, changedAccountId == accountId else {
+        self.privacyObserver = NotificationCenter.default.addObserver(forName: MokoSettings.didChange, object: nil, queue: nil, using: { [weak self] notification in
+            guard let self, let key = notification.userInfo?["key"] as? String, key.hasPrefix("ghost."), let changedAccountId = notification.userInfo?["accountId"] as? Int64, changedAccountId == accountId else {
                 return
             }
             queue.async { [weak self] in

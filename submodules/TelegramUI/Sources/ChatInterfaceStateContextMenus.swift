@@ -39,6 +39,7 @@ import ChatMessageBubbleItemNode
 import AdsInfoScreen
 import AdsReportScreen
 import WalletContext
+import MokoCore
  
 private struct MessageContextMenuData {
     let starStatus: Bool?

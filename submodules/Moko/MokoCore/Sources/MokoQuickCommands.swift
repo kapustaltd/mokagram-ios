@@ -1,18 +1,17 @@
 import Foundation
 
 public enum MokoQuickCommands {
-    private static func key(_ accountId: Int64) -> String { "mokoGram.quickCommands.\(accountId)" }
     private static let commands: Set<String> = [".calc", ".snip", ".tag", ".note", ".id", ".archive", ".unarchive", ".mute", ".unmute", ".save"]
     private static let aliasPattern = try! NSRegularExpression(pattern: "^[\\p{L}\\p{N}_]{1,24}$")
 
-    public static func parse(_ text: String, accountId: Int64? = nil, defaults: UserDefaults = .standard) -> (name: String, argument: String)? {
+    public static func parse(_ text: String, accountId: Int64? = nil) -> (name: String, argument: String)? {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let end = text.firstIndex(where: { $0.isWhitespace }) ?? text.endIndex
         let name = text[..<end].lowercased()
         let resolved: String
         if commands.contains(name) {
             resolved = name
-        } else if name.hasPrefix("."), let accountId, let target = aliases(accountId: accountId, defaults: defaults)[String(name.dropFirst())], commands.contains(target) {
+        } else if name.hasPrefix("."), let accountId, let target = aliases(accountId: accountId)[String(name.dropFirst())], commands.contains(target) {
             resolved = target
         } else {
             return nil
@@ -20,28 +19,48 @@ public enum MokoQuickCommands {
         return (resolved, String(text[end...]).trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    public static func aliases(accountId: Int64, defaults: UserDefaults = .standard) -> [String: String] {
-        return defaults.dictionary(forKey: "mokoGram.commandAliases.\(accountId)") as? [String: String] ?? [:]
+    /// Desktop's `commands.aliases` format: one "alias=command" per line, both without the dot.
+    public static func aliases(accountId: Int64) -> [String: String] {
+        return parseAliases(MokoSettings.string("commands.aliases", accountId: accountId))
+    }
+
+    static func parseAliases(_ text: String) -> [String: String] {
+        var result: [String: String] = [:]
+        for line in text.split(whereSeparator: \.isNewline) {
+            let line = line.trimmingCharacters(in: .whitespaces)
+            let parts = line.contains("=") ? line.split(separator: "=", omittingEmptySubsequences: false).map(String.init) : line.split(whereSeparator: \.isWhitespace).map(String.init)
+            guard parts.count == 2 else { continue }
+            let alias = parts[0].trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            let command = parts[1].trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            if !alias.isEmpty && !command.isEmpty {
+                result[alias] = "." + command
+            }
+        }
+        return result
+    }
+
+    static func formatAliases(_ values: [String: String]) -> String {
+        return values.keys.sorted().map { "\($0)=\(values[$0]!.trimmingCharacters(in: CharacterSet(charactersIn: ".")))" }.joined(separator: "\n")
     }
 
     @discardableResult
-    public static func saveAlias(name: String, target: String, accountId: Int64, defaults: UserDefaults = .standard) -> Bool {
+    public static func saveAlias(name: String, target: String, accountId: Int64) -> Bool {
         let alias = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
         let target = target.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
         let range = NSRange(location: 0, length: (alias as NSString).length)
         guard aliasPattern.firstMatch(in: alias, range: range)?.range == range, !commands.contains("." + alias), target.isEmpty || commands.contains("." + target) else { return false }
-        var values = aliases(accountId: accountId, defaults: defaults)
+        var values = aliases(accountId: accountId)
         if target.isEmpty { values.removeValue(forKey: alias) } else { values[alias] = "." + target }
-        defaults.set(values, forKey: "mokoGram.commandAliases.\(accountId)")
+        MokoSettings.set(.string(formatAliases(values)), for: "commands.aliases", accountId: accountId)
         return true
     }
 
-    public static func enabled(accountId: Int64, defaults: UserDefaults = .standard) -> Bool {
-        defaults.bool(forKey: key(accountId))
+    public static func enabled(accountId: Int64) -> Bool {
+        return MokoSettings.bool("commands.enabled", accountId: accountId)
     }
 
-    public static func setEnabled(_ value: Bool, accountId: Int64, defaults: UserDefaults = .standard) {
-        defaults.set(value, forKey: key(accountId))
+    public static func setEnabled(_ value: Bool, accountId: Int64) {
+        MokoSettings.set(.bool(value), for: "commands.enabled", accountId: accountId)
     }
 
     /// A blank or zero duration means indefinitely. Timed mutes are limited to one year.

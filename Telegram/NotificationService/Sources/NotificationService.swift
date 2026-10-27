@@ -22,6 +22,7 @@ import ConvertOpusToAAC
 import CoreServices
 import ImageIO
 import UniformTypeIdentifiers
+import MokoCore
 
 private let queue = Queue()
 
@@ -788,7 +789,8 @@ private final class NotificationServiceHandler {
         let apiHash: String = buildConfig.apiHash
         let languagesCategory = "ios"
 
-        let appGroupName = "group.\(baseAppBundleId)"
+        let appGroupName = MokoStorage.appGroupName(baseAppBundleId: baseAppBundleId)
+        MokoStorage.configure(appGroupName: appGroupName)
         try! PasscodeEnvironment.shared.configure(PasscodeConfiguration(appGroupIdentifier: appGroupName, processRole: .appExtension))
         let maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
 

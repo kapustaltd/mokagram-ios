@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import TelegramCore
+import MokoCore
 
 final class MokoGhostScheduleTests: XCTestCase {
     private func schedule(_ from: String, _ to: String, enabled: Bool = true) -> MokoGhostSchedule {
@@ -57,29 +57,31 @@ final class MokoGhostScheduleTests: XCTestCase {
     func testPersistenceIsPerAccount() {
         let suite = "MokoGhostScheduleTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
+        MokoStorage._resetForTesting(defaults: defaults)
         defer { defaults.removePersistentDomain(forName: suite) }
-        XCTAssertFalse(MokoGhostSchedule.load(accountId: 1, defaults: defaults).isEnabled)
-        MokoGhostSchedule.save(schedule("22:30", "06:15"), accountId: 1, defaults: defaults)
-        let loaded = MokoGhostSchedule.load(accountId: 1, defaults: defaults)
+        XCTAssertFalse(MokoGhostSchedule.load(accountId: 1).isEnabled)
+        MokoGhostSchedule.save(schedule("22:30", "06:15"), accountId: 1)
+        let loaded = MokoGhostSchedule.load(accountId: 1)
         XCTAssertTrue(loaded.isEnabled)
         XCTAssertEqual(loaded.from, 22 * 60 + 30)
         XCTAssertEqual(loaded.to, 6 * 60 + 15)
         XCTAssertTrue(loaded.read)
-        XCTAssertFalse(MokoGhostSchedule.load(accountId: 2, defaults: defaults).isEnabled)
+        XCTAssertFalse(MokoGhostSchedule.load(accountId: 2).isEnabled)
     }
 
     func testPrivacyGettersHonourSchedule() {
         let suite = "MokoGhostScheduleTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
+        MokoStorage._resetForTesting(defaults: defaults)
         defer { defaults.removePersistentDomain(forName: suite) }
-        MokoGhostSchedule.save(schedule("23:00", "07:00"), accountId: 1, defaults: defaults)
-        XCTAssertTrue(MokoPrivacySettings.suppressOnlineUpdates(accountId: 1, minuteOfDay: 60, defaults: defaults))
-        XCTAssertFalse(MokoPrivacySettings.suppressOnlineUpdates(accountId: 1, minuteOfDay: 12 * 60, defaults: defaults))
-        XCTAssertTrue(MokoPrivacySettings.suppressAutomaticRead(accountId: 1, peerId: 5, minuteOfDay: 60, defaults: defaults))
-        XCTAssertFalse(MokoPrivacySettings.suppressAutomaticRead(accountId: 1, peerId: 5, minuteOfDay: 12 * 60, defaults: defaults))
-        MokoPrivacySettings.setAllowsAutomaticRead(true, accountId: 1, peerId: 5, defaults: defaults)
-        XCTAssertFalse(MokoPrivacySettings.suppressAutomaticRead(accountId: 1, peerId: 5, minuteOfDay: 60, defaults: defaults))
-        XCTAssertFalse(MokoPrivacySettings.hideTyping(accountId: 1, minuteOfDay: 60, defaults: defaults))
-        XCTAssertFalse(MokoPrivacySettings.suppressOnlineUpdates(accountId: 2, minuteOfDay: 60, defaults: defaults))
+        MokoGhostSchedule.save(schedule("23:00", "07:00"), accountId: 1)
+        XCTAssertTrue(MokoPrivacySettings.suppressOnlineUpdates(accountId: 1, minuteOfDay: 60))
+        XCTAssertFalse(MokoPrivacySettings.suppressOnlineUpdates(accountId: 1, minuteOfDay: 12 * 60))
+        XCTAssertTrue(MokoPrivacySettings.suppressAutomaticRead(accountId: 1, peerId: 5, minuteOfDay: 60))
+        XCTAssertFalse(MokoPrivacySettings.suppressAutomaticRead(accountId: 1, peerId: 5, minuteOfDay: 12 * 60))
+        MokoPrivacySettings.setAllowsAutomaticRead(true, accountId: 1, peerId: 5)
+        XCTAssertFalse(MokoPrivacySettings.suppressAutomaticRead(accountId: 1, peerId: 5, minuteOfDay: 60))
+        XCTAssertFalse(MokoPrivacySettings.hideTyping(accountId: 1, minuteOfDay: 60))
+        XCTAssertFalse(MokoPrivacySettings.suppressOnlineUpdates(accountId: 2, minuteOfDay: 60))
     }
 }

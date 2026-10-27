@@ -32,6 +32,7 @@ import WalletContext
 import WalletConnectScreen
 import AlertUI
 import MetalEngine
+import MokoCore
 
 private final class DeviceSpecificContactImportContext {
     let disposable = MetaDisposable()

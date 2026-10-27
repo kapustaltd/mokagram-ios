@@ -3,6 +3,7 @@ import Postbox
 import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
+import MokoCore
 
 
 public struct PeerActivitySpace: Hashable {

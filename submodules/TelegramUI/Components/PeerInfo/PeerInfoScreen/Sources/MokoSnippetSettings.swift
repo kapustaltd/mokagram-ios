@@ -1,5 +1,6 @@
 import UIKit
 import TelegramCore
+import MokoCore
 
 // The editor currently stores plain text; existing formatting around a trigger is preserved.
 enum MokoSnippetSettings {

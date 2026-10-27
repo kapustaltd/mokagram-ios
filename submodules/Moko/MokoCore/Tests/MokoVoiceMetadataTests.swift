@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import TelegramCore
+import MokoCore
 
 final class MokoVoiceMetadataTests: XCTestCase {
     func testOpusHeadersAndTruncation() {

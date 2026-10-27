@@ -70,29 +70,25 @@ public struct MokoGhostSchedule: Equatable {
         return MokoGhostFlags(read: base.read || read, online: base.online || online, typing: base.typing || typing, stories: base.stories || stories)
     }
 
-    private static func key(_ name: String, accountId: Int64) -> String {
-        return "mokoGram.ghostSchedule.\(name).\(accountId)"
-    }
-
-    public static func load(accountId: Int64, defaults: UserDefaults = .standard) -> MokoGhostSchedule {
+    public static func load(accountId: Int64) -> MokoGhostSchedule {
         return MokoGhostSchedule(
-            isEnabled: defaults.bool(forKey: key("enabled", accountId: accountId)),
-            from: defaults.string(forKey: key("from", accountId: accountId)).flatMap(parseTime) ?? parseTime("23:00"),
-            to: defaults.string(forKey: key("to", accountId: accountId)).flatMap(parseTime) ?? parseTime("07:00"),
-            read: defaults.bool(forKey: key("read", accountId: accountId)),
-            online: defaults.bool(forKey: key("online", accountId: accountId)),
-            typing: defaults.bool(forKey: key("typing", accountId: accountId)),
-            stories: defaults.bool(forKey: key("stories", accountId: accountId))
+            isEnabled: MokoSettings.bool("ghost.schedule", accountId: accountId),
+            from: parseTime(MokoSettings.string("ghost.schedule_from", accountId: accountId)),
+            to: parseTime(MokoSettings.string("ghost.schedule_to", accountId: accountId)),
+            read: MokoSettings.bool("ghost.sched_read", accountId: accountId),
+            online: MokoSettings.bool("ghost.sched_online", accountId: accountId),
+            typing: MokoSettings.bool("ghost.sched_typing", accountId: accountId),
+            stories: MokoSettings.bool("ghost.sched_stories", accountId: accountId)
         )
     }
 
-    public static func save(_ schedule: MokoGhostSchedule, accountId: Int64, defaults: UserDefaults = .standard) {
-        defaults.set(schedule.isEnabled, forKey: key("enabled", accountId: accountId))
-        defaults.set(formatTime(schedule.from), forKey: key("from", accountId: accountId))
-        defaults.set(formatTime(schedule.to), forKey: key("to", accountId: accountId))
-        defaults.set(schedule.read, forKey: key("read", accountId: accountId))
-        defaults.set(schedule.online, forKey: key("online", accountId: accountId))
-        defaults.set(schedule.typing, forKey: key("typing", accountId: accountId))
-        defaults.set(schedule.stories, forKey: key("stories", accountId: accountId))
+    public static func save(_ schedule: MokoGhostSchedule, accountId: Int64) {
+        MokoSettings.set(.bool(schedule.isEnabled), for: "ghost.schedule", accountId: accountId)
+        MokoSettings.set(.string(formatTime(schedule.from)), for: "ghost.schedule_from", accountId: accountId)
+        MokoSettings.set(.string(formatTime(schedule.to)), for: "ghost.schedule_to", accountId: accountId)
+        MokoSettings.set(.bool(schedule.read), for: "ghost.sched_read", accountId: accountId)
+        MokoSettings.set(.bool(schedule.online), for: "ghost.sched_online", accountId: accountId)
+        MokoSettings.set(.bool(schedule.typing), for: "ghost.sched_typing", accountId: accountId)
+        MokoSettings.set(.bool(schedule.stories), for: "ghost.sched_stories", accountId: accountId)
     }
 }

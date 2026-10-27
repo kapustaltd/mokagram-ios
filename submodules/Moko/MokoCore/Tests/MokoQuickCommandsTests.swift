@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import TelegramCore
+import MokoCore
 
 final class MokoQuickCommandsTests: XCTestCase {
     func testCalculator() {
@@ -35,17 +35,18 @@ final class MokoQuickCommandsTests: XCTestCase {
     func testSettingIsAccountSpecific() {
         let suite = "MokoQuickCommandsTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
+        MokoStorage._resetForTesting(defaults: defaults)
         defer { defaults.removePersistentDomain(forName: suite) }
-        XCTAssertFalse(MokoQuickCommands.enabled(accountId: 1, defaults: defaults))
-        MokoQuickCommands.setEnabled(true, accountId: 1, defaults: defaults)
-        XCTAssertTrue(MokoQuickCommands.enabled(accountId: 1, defaults: defaults))
-        XCTAssertFalse(MokoQuickCommands.enabled(accountId: 2, defaults: defaults))
-        XCTAssertTrue(MokoQuickCommands.saveAlias(name: "sum", target: "calc", accountId: 1, defaults: defaults))
-        XCTAssertEqual(MokoQuickCommands.parse(".sum 2+2", accountId: 1, defaults: defaults)?.name, ".calc")
-        XCTAssertNil(MokoQuickCommands.parse(".sum 2+2", accountId: 2, defaults: defaults))
-        XCTAssertFalse(MokoQuickCommands.saveAlias(name: "calc", target: "id", accountId: 1, defaults: defaults))
-        XCTAssertFalse(MokoQuickCommands.saveAlias(name: "x", target: "unimplemented", accountId: 1, defaults: defaults))
-        XCTAssertTrue(MokoQuickCommands.saveAlias(name: "sum", target: "", accountId: 1, defaults: defaults))
-        XCTAssertNil(MokoQuickCommands.parse(".sum 2+2", accountId: 1, defaults: defaults))
+        XCTAssertFalse(MokoQuickCommands.enabled(accountId: 1))
+        MokoQuickCommands.setEnabled(true, accountId: 1)
+        XCTAssertTrue(MokoQuickCommands.enabled(accountId: 1))
+        XCTAssertFalse(MokoQuickCommands.enabled(accountId: 2))
+        XCTAssertTrue(MokoQuickCommands.saveAlias(name: "sum", target: "calc", accountId: 1))
+        XCTAssertEqual(MokoQuickCommands.parse(".sum 2+2", accountId: 1)?.name, ".calc")
+        XCTAssertNil(MokoQuickCommands.parse(".sum 2+2", accountId: 2))
+        XCTAssertFalse(MokoQuickCommands.saveAlias(name: "calc", target: "id", accountId: 1))
+        XCTAssertFalse(MokoQuickCommands.saveAlias(name: "x", target: "unimplemented", accountId: 1))
+        XCTAssertTrue(MokoQuickCommands.saveAlias(name: "sum", target: "", accountId: 1))
+        XCTAssertNil(MokoQuickCommands.parse(".sum 2+2", accountId: 1))
     }
 }
