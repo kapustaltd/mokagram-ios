@@ -7,6 +7,7 @@ public enum MokoBuiltinSettings {
     private static let ghost = "Призрак"
     private static let schedule = "По расписанию"
     private static let commands = "Быстрые команды"
+    private static let player = "Плеер"
 
     private static func ghostFlag(_ key: String, _ title: String, _ description: String, defaultValue: Bool = true, dependsOn: String = "ghost.enabled", section: String = MokoBuiltinSettings.ghost, hidden: Bool = false) -> MokoSettingEntry {
         return MokoSettingEntry(key: key, page: .privacy, section: section, title: title, description: description, kind: .bool, defaultValue: .bool(defaultValue), scope: .account, dependsOn: dependsOn, hidden: hidden)
@@ -28,6 +29,11 @@ public enum MokoBuiltinSettings {
         ghostFlag("ghost.sched_typing", "Не показывать «печатает»", "", dependsOn: "ghost.schedule", section: schedule),
         ghostFlag("ghost.sched_stories", "Скрыть просмотры историй", "", defaultValue: false, dependsOn: "ghost.schedule", section: schedule),
         MokoSettingEntry(key: "commands.enabled", page: .tools, section: commands, title: "Быстрые команды", description: "Команды: .calc, .id, .snip, .tag, .note, .archive, .unarchive, .mute, .unmute и .save. Они выполняются на телефоне и не отправляются в чат.", kind: .bool, defaultValue: .bool(false), scope: .account),
+        // Music: device-wide, as on Desktop (appearance/mokagram_appearance.cpp:187-212).
+        MokoSettingEntry(key: "player.autoplay_next", page: .music, section: player, title: "Автовоспроизведение следующего", description: "Когда трек заканчивается, начинается следующий в очереди.", kind: .bool, defaultValue: .bool(true), scope: .device),
+        MokoSettingEntry(key: "player.cover_colors", page: .music, section: player, title: "Цвета плеера из обложки", description: "", kind: .bool, defaultValue: .bool(true), scope: .device),
+        MokoSettingEntry(key: "lyrics.enabled", page: .music, section: player, title: "Текст песни", description: "Тексты берутся из LRCLIB, а если там нет, из NetEase.", kind: .bool, defaultValue: .bool(true), scope: .device),
+        MokoSettingEntry(key: "music.cache_mb", page: .music, section: player, title: "Кэш музыки, МБ", description: "Скачанные треки SoundCloud. Самые старые удаляются, когда кэш больше этого размера.", kind: .int(min: 100, max: 5000), defaultValue: .int(500), scope: .device),
         MokoSettingEntry(key: "commands.aliases", page: .tools, section: commands, title: "Алиасы команд", description: "", kind: .string, defaultValue: .string(""), scope: .account, dependsOn: "commands.enabled", hidden: true),
     ]
 }

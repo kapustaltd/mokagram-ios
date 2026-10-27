@@ -75,3 +75,8 @@
 	{ "Время в формате ЧЧ:ММ", "Time as HH:MM" },
 	{ "Изменённые значения отмечены точкой.", "Changed values are marked with a dot." },
 	{ "Файл не удалось прочитать.", "The file could not be read." },
+	{ "Кэш музыки, МБ", "Music cache, MB" },
+	{ "Когда трек заканчивается, начинается следующий в очереди.", "When a track ends, the next one in the queue starts." },
+	{ "Тексты берутся из LRCLIB, а если там нет, из NetEase.", "Lyrics come from LRCLIB, or from NetEase when LRCLIB has none." },
+	{ "Скачанные треки SoundCloud. Самые старые удаляются, когда кэш больше этого размера.", "Downloaded SoundCloud tracks. The oldest are removed when the cache grows past this size." },
+	{ "Трек недоступен, переключаю дальше", "Track unavailable, skipping" },

@@ -75,6 +75,31 @@ public struct InstantPagePlaylistLocation: SharedMediaPlaylistLocation {
     }
 }
 
+/// A mokaGram SoundCloud queue. `tracks` is the display payload for the player's queue rows
+/// (one synthesized Local-id row per index) and `jump` re-anchors the playing queue on a row;
+/// neither is part of the identity.
+public struct MokoMusicPlaylistLocation: SharedMediaPlaylistLocation {
+    public let queueId: Int64
+    public let tracks: [(index: Int, file: TelegramMediaFile)]
+    /// The playing row when the location was read.
+    public let currentIndex: Int?
+    public let jump: (Int) -> Void
+
+    public init(queueId: Int64, tracks: [(index: Int, file: TelegramMediaFile)], currentIndex: Int?, jump: @escaping (Int) -> Void) {
+        self.queueId = queueId
+        self.tracks = tracks
+        self.currentIndex = currentIndex
+        self.jump = jump
+    }
+
+    public func isEqual(to: SharedMediaPlaylistLocation) -> Bool {
+        guard let to = to as? MokoMusicPlaylistLocation else {
+            return false
+        }
+        return self.queueId == to.queueId
+    }
+}
+
 public enum PeerMessagesPlaylistLocation: Equatable, SharedMediaPlaylistLocation {
     case messages(chatLocation: ChatLocation, tagMask: EngineMessage.Tags, at: EngineMessage.Id)
     case singleMessage(EngineMessage.Id)

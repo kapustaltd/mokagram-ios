@@ -137,6 +137,16 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             // handling, which saved music also uses and which is correct for it today.
             self.source = .custom(messages: .single((queueMessages, Int32(queueMessages.count), false)), messageId: initialMessageId, quote: nil, isSavedMusic: false, canReorder: false, richMessageId: richMessageId, loadMore: nil)
             self.isGlobalSearch = false
+        } else if let mokoLocation = playlistLocation as? MokoMusicPlaylistLocation, !mokoLocation.tracks.isEmpty {
+            // mokaGram SoundCloud queue: display-only rows as for a rich message above; a tapped row
+            // re-anchors the playing queue through `jump` (see openMessageImpl).
+            let peerId = context.account.peerId
+            var queueMessages: [EngineRawMessage] = []
+            for track in mokoLocation.tracks {
+                queueMessages.append(EngineRawMessage(stableId: UInt32(clamping: track.index), stableVersion: 0, id: EngineMessage.Id(peerId: peerId, namespace: Namespaces.Message.Local, id: Int32(clamping: track.index)), globallyUniqueId: nil, groupingKey: nil, groupInfo: nil, threadId: nil, timestamp: 0, flags: [], tags: [.music], globalTags: [], localTags: [], customTags: [], forwardInfo: nil, author: nil, text: "", attributes: [], media: [track.file], peers: EngineSimpleDictionary(), associatedMessages: EngineSimpleDictionary(), associatedMessageIds: [], associatedMedia: [:], associatedThreadInfo: nil, associatedStories: [:]))
+            }
+            self.source = .custom(messages: .single((queueMessages, Int32(queueMessages.count), false)), messageId: initialMessageId, quote: nil, isSavedMusic: false, canReorder: false, richMessageId: nil, loadMore: nil)
+            self.isGlobalSearch = false
         } else {
             self.source = .default
             self.isGlobalSearch = false
@@ -499,6 +509,10 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         }
         
         openMessageImpl = { [weak self] id in
+            if let strongSelf = self, let mokoLocation = strongSelf.playlistLocation as? MokoMusicPlaylistLocation, id.namespace == Namespaces.Message.Local {
+                mokoLocation.jump(Int(id.id))
+                return false
+            }
             if let strongSelf = self, let instantPageLocation = strongSelf.playlistLocation as? InstantPagePlaylistLocation, instantPageLocation.messageId != nil, id.namespace == Namespaces.Message.Local {
                 // Re-seed the SAME playlist at the tapped track. Letting openChatMessage build a
                 // PeerMessagesMediaPlaylist over these rows would be wrong twice: they are
