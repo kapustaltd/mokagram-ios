@@ -30,21 +30,36 @@ jobs:
           sudo xcode-select -s "/Applications/Xcode_$XCODE_VERSION.app/Contents/Developer"
           xcodebuild -version
 
-      - name: Prepare configuration and placeholder profiles
+      - name: Prepare configuration and signing material
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          # All five set: real ad-hoc signing (see README). None set: placeholder, unsigned IPA.
+          MOKAGRAM_SIGNING_P12_BASE64: ${{ secrets.MOKAGRAM_SIGNING_P12_BASE64 }}
+          MOKAGRAM_SIGNING_P12_PASSWORD: ${{ secrets.MOKAGRAM_SIGNING_P12_PASSWORD }}
+          MOKAGRAM_PROFILES_ZIP_BASE64: ${{ secrets.MOKAGRAM_PROFILES_ZIP_BASE64 }}
+          MOKAGRAM_TEAM_ID: ${{ secrets.MOKAGRAM_TEAM_ID }}
+          MOKAGRAM_BUNDLE_ID: ${{ secrets.MOKAGRAM_BUNDLE_ID }}
         run: python3 build-system/mokagram/prepare.py
 
-      - name: Import temporary signing identity
+      - name: Import signing identity
+        env:
+          MOKAGRAM_SIGNING_P12_PASSWORD: ${{ secrets.MOKAGRAM_SIGNING_P12_PASSWORD }}
         run: |
           KEYCHAIN="$RUNNER_TEMP/mokagram.keychain-db"
           security create-keychain -p placeholder "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
           security unlock-keychain -p placeholder "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
-          security import build-input/mokagram/signing/certs/Placeholder.p12 \
-            -k "$KEYCHAIN" -P placeholder -T /usr/bin/codesign -T /usr/bin/security
+          if test -f build-input/mokagram/signing/certs/Distribution.p12; then
+            security import build-input/mokagram/signing/certs/Distribution.p12 \
+              -k "$KEYCHAIN" -P "$MOKAGRAM_SIGNING_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+            echo "IPA_NAME=Mokagram-adhoc" >> "$GITHUB_ENV"
+          else
+            security import build-input/mokagram/signing/certs/Placeholder.p12 \
+              -k "$KEYCHAIN" -P placeholder -T /usr/bin/codesign -T /usr/bin/security
+            echo "IPA_NAME=Mokagram-unsigned" >> "$GITHUB_ENV"
+          fi
           security set-key-partition-list -S apple-tool:,apple: -k placeholder "$KEYCHAIN"
           security find-identity -v -p codesigning "$KEYCHAIN"
 
@@ -65,12 +80,12 @@ jobs:
             --configuration=release_arm64 \
             --buildNumber="${{ github.run_number }}"
           mkdir -p build/artifacts
-          cp bazel-bin/Telegram/Telegram.ipa build/artifacts/Mokagram-unsigned.ipa
-          shasum -a 256 build/artifacts/Mokagram-unsigned.ipa > build/artifacts/Mokagram-unsigned.ipa.sha256
+          cp bazel-bin/Telegram/Telegram.ipa "build/artifacts/$IPA_NAME.ipa"
+          shasum -a 256 "build/artifacts/$IPA_NAME.ipa" > "build/artifacts/$IPA_NAME.ipa.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Mokagram-unsigned-ipa
+          name: ${{ env.IPA_NAME }}-ipa
           path: build/artifacts/*
           if-no-files-found: error
           retention-days: 14
