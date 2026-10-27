@@ -36,6 +36,36 @@ public enum MokoTrackActions {
         sheet.addAction(UIAlertAction(title: strings.moko(liked ? "Убрать из понравившихся" : "Нравится"), style: .default, handler: { _ in
             music.library.setLiked(track, !liked)
         }))
+        sheet.addAction(UIAlertAction(title: strings.moko("Отправить в чат"), style: .default, handler: { [weak controller] _ in
+            let selection = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
+            selection.peerSelected = { [weak selection] peer, threadId in
+                selection?.dismiss()
+                toast(context, strings.moko("Отправляю…"))
+                let _ = (MokoTrackSending.send(context: context, track: track, peerId: peer.id, threadId: threadId)
+                |> deliverOnMainQueue).start(error: { error in
+                    if case let .download(error) = error {
+                        toast(context, errorText(error, strings: strings))
+                    }
+                }, completed: {
+                    toast(context, strings.moko("Отправлено"))
+                })
+            }
+            controller?.push(selection)
+        }))
+        sheet.addAction(UIAlertAction(title: strings.moko("Добавить в профиль"), style: .default, handler: { _ in
+            toast(context, strings.moko("Добавляю в профиль…"))
+            let _ = (MokoTrackSending.addToProfile(context: context, track: track)
+            |> deliverOnMainQueue).start(error: { error in
+                switch error {
+                case let .download(error):
+                    toast(context, errorText(error, strings: strings))
+                case .notDelivered, .profile:
+                    toast(context, strings.moko("Не получилось добавить в профиль. Трек остался в «Избранном»."))
+                }
+            }, completed: {
+                toast(context, strings.moko("Добавлено в профиль"))
+            })
+        }))
         sheet.addAction(UIAlertAction(title: strings.moko("Сохранить в Файлы"), style: .default, handler: { _ in
             let _ = (music.downloader.download(track)
             |> deliverOnMainQueue).start(next: { url in
