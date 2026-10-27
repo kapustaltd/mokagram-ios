@@ -15,6 +15,7 @@ import PeerNameColorItem
 import WalletContext
 import MokoCore
 import MokoSettingsUI
+import MokoMusicUI
 
 enum SettingsSection: Int, CaseIterable {
     case edit
@@ -346,6 +347,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     }
     
     items[.moko]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "mokaGram", icon: PresentationResourcesSettings.settings, action: {
+        MokoMusicSettings.register()
         interaction.getController()?.push(mokoSettingsController(context: context))
     }))
 
