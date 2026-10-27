@@ -1956,7 +1956,7 @@ public func debugController(sharedContext: SharedAccountContext, context: Accoun
         return getNavigationControllerImpl?()
     })
     
-    let appGroupName = "group.\(Bundle.main.bundleIdentifier!)"
+    let appGroupName = Bundle.main.bundleIdentifier! == "app.starfruit2689.orange1525" ? "group.8597cef54a2b8971.1" : "group.\(Bundle.main.bundleIdentifier!)"
     let maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
     
     var hasLegacyAppData = false
