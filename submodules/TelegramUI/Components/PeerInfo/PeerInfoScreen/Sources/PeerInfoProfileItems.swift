@@ -106,6 +106,7 @@ func infoItems(
         let ItemAbout = 3003
         let ItemNote = 3004
         let ItemAppFooter = 3005
+        let ItemMokoNote = 3006
         let ItemAffiliate = 4000
         let ItemAffiliateInfo = 4001
         let ItemBusinessHours = 5000
@@ -128,6 +129,44 @@ func infoItems(
         let ItemBotAddToChatInfo = 9003
         let ItemVerification = 9004
         let ItemCommunity = 10000
+        let ItemMokoReadException = 10001
+
+        if user.id != context.account.peerId {
+            let accountId = context.account.peerId.toInt64()
+            let peerId = user.id.toInt64()
+            let localNote = MokoLocalPeerNotes.load(accountId: accountId, peerId: peerId)
+            let isRussian = presentationData.strings.baseLanguageCode == "ru"
+            let title = isRussian ? "Личная заметка mokaGram" : "mokaGram private note"
+            let emptyText = isRussian ? "Добавить тег и заметку" : "Add a tag and note"
+            let value = [localNote.tag, localNote.note].filter { !$0.isEmpty }.joined(separator: "\n")
+            items[currentPeerInfoSection]!.append(PeerInfoScreenLabeledValueItem(id: ItemMokoNote, label: title, text: value.isEmpty ? emptyText : value, textColor: value.isEmpty ? .accent : .primary, textBehavior: .multiLine(maxLines: 100, enabledEntities: []), action: { _, _ in
+                guard let controller = interaction.getController() else {
+                    return
+                }
+                let alert = UIAlertController(title: title, message: isRussian ? "Хранится на этом устройстве и не отправляется собеседнику." : "Stored on this device and not sent to the other person.", preferredStyle: .alert)
+                alert.addTextField { field in
+                    field.placeholder = isRussian ? "Тег" : "Tag"
+                    field.text = localNote.tag
+                }
+                alert.addTextField { field in
+                    field.placeholder = isRussian ? "Заметка" : "Note"
+                    field.text = localNote.note
+                }
+                alert.addAction(UIAlertAction(title: isRussian ? "Отмена" : "Cancel", style: .cancel))
+                alert.addAction(UIAlertAction(title: isRussian ? "Сохранить" : "Save", style: .default, handler: { [weak alert] _ in
+                    MokoLocalPeerNotes.save(accountId: accountId, peerId: peerId, tag: alert?.textFields?.first?.text ?? "", note: alert?.textFields?.last?.text ?? "")
+                    interaction.requestLayout(true)
+                }))
+                controller.view.window?.rootViewController?.present(alert, animated: true)
+            }, requestLayout: { animated in
+                interaction.requestLayout(animated)
+            }))
+            items[.peerSettings]!.append(PeerInfoScreenSwitchItem(id: ItemMokoReadException, text: isRussian ? "Разрешить авточтение" : "Allow automatic read", value: MokoPrivacySettings.allowsAutomaticRead(accountId: accountId, peerId: peerId), toggled: { value in
+                MokoPrivacySettings.setAllowsAutomaticRead(value, accountId: accountId, peerId: peerId)
+                interaction.requestLayout(true)
+            }))
+            items[.peerSettings]!.append(PeerInfoScreenCommentItem(id: ItemMokoReadException + 1, text: isRussian ? "Исключение из настройки «Не читать при открытии чата» для обычного личного чата. На секретные чаты не действует." : "Excludes this regular private chat from the automatic-read setting. Does not apply to secret chats."))
+        }
         
         if let cachedUserData = data.cachedData as? CachedUserData, cachedUserData.flags.contains(.unofficialSecurityRisk) {
             items[.unofficial]!.append(PeerInfoScreenInfoItem(id: 0, title: "", text: .plain(presentationData.strings.PeerInfo_UnofficialSecurityRisk(EnginePeer(user).compactDisplayTitle).string), style: .compact, linkAction: nil))
@@ -842,6 +881,26 @@ func infoItems(
                     interaction.requestLayout(animated)
                 }))
             }
+        }
+    }
+
+    if let peer = data.peer, data.threadData == nil {
+        let supportsReadException: Bool
+        switch peer {
+        case .channel, .legacyGroup:
+            supportsReadException = true
+        default:
+            supportsReadException = false
+        }
+        if supportsReadException {
+            let accountId = context.account.peerId.toInt64()
+            let peerId = peer.id.toInt64()
+            let isRussian = presentationData.strings.baseLanguageCode == "ru"
+            items[.peerSettings]!.append(PeerInfoScreenSwitchItem(id: 10001, text: isRussian ? "Разрешить авточтение" : "Allow automatic read", value: MokoPrivacySettings.allowsAutomaticRead(accountId: accountId, peerId: peerId), toggled: { value in
+                MokoPrivacySettings.setAllowsAutomaticRead(value, accountId: accountId, peerId: peerId)
+                interaction.requestLayout(true)
+            }))
+            items[.peerSettings]!.append(PeerInfoScreenCommentItem(id: 10002, text: isRussian ? "Исключение для этого чата и всех его обсуждений." : "An exception for this chat and all its discussion threads."))
         }
     }
     

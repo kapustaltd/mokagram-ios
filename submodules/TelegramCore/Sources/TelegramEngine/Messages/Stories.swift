@@ -2071,12 +2071,18 @@ func _internal_deleteStories(account: Account, peerId: PeerId, ids: [Int32]) -> 
 }
 
 func _internal_markStoryAsSeen(account: Account, peerId: PeerId, id: Int32, asPinned: Bool) -> Signal<Never, NoError> {
+    if MokoPrivacySettings.hideStoryViews(accountId: account.peerId.toInt64()) {
+        return .complete()
+    }
     if asPinned {
         return account.postbox.transaction { transaction -> Api.InputPeer? in
             return transaction.getPeer(peerId).flatMap(apiInputPeer)
         }
         |> mapToSignal { inputPeer -> Signal<Never, NoError> in
             guard let inputPeer = inputPeer else {
+                return .complete()
+            }
+            guard !MokoPrivacySettings.hideStoryViews(accountId: account.peerId.toInt64()) else {
                 return .complete()
             }
             
@@ -2093,7 +2099,10 @@ func _internal_markStoryAsSeen(account: Account, peerId: PeerId, id: Int32, asPi
             |> ignoreValues
         }
     } else {
-        return account.postbox.transaction { transaction -> Api.InputUser? in
+        return account.postbox.transaction { transaction -> Bool in
+            guard !MokoPrivacySettings.hideStoryViews(accountId: account.peerId.toInt64()) else {
+                return false
+            }
             if let peerStoryState = transaction.getPeerStoryState(peerId: peerId)?.entry.get(Stories.PeerState.self) {
                 transaction.setPeerStoryState(peerId: peerId, state: Stories.PeerState(
                     maxReadId: max(peerStoryState.maxReadId, id)
@@ -2105,9 +2114,12 @@ func _internal_markStoryAsSeen(account: Account, peerId: PeerId, id: Int32, asPi
             _internal_addSynchronizeViewStoriesOperation(peerId: peerId, storyId: id, transaction: transaction)
             #endif
             
-            return transaction.getPeer(peerId).flatMap(apiInputUser)
+            return true
         }
-        |> mapToSignal { _ -> Signal<Never, NoError> in
+        |> mapToSignal { recorded -> Signal<Never, NoError> in
+            guard recorded, !MokoPrivacySettings.hideStoryViews(accountId: account.peerId.toInt64()) else {
+                return .complete()
+            }
             account.stateManager.injectStoryUpdates(updates: [.read(peerId: peerId, maxId: id)])
             
             return .complete()
