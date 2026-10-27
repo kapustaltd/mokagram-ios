@@ -16,6 +16,9 @@ def run(*args):
 
 def prepare():
     config = json.loads(Path('build-system/mokagram/configuration.json').read_text())
+    for key, name in (('bundle_id', 'MOKAGRAM_BUNDLE_ID'), ('team_id', 'MOKAGRAM_TEAM_ID')):
+        if os.environ.get(name, '').strip():
+            config[key] = os.environ[name].strip()
     api_id = os.environ.get('TELEGRAM_API_ID', '').strip()
     api_hash = os.environ.get('TELEGRAM_API_HASH', '').strip()
     if bool(api_id) != bool(api_hash):

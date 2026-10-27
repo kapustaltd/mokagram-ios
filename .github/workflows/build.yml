@@ -55,14 +55,14 @@ jobs:
           restore-keys: |
             mokagram-bazel-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
 
-      - name: Build Debug IPA for arm64 devices
+      - name: Build Release IPA for arm64 devices
         run: |
           python3 -u build-system/Make/Make.py \
             --cacheDir="$HOME/telegram-bazel-cache" \
             build \
             --configurationPath=build-input/mokagram/configuration.json \
             --codesigningInformationPath=build-input/mokagram/signing \
-            --configuration=debug_arm64 \
+            --configuration=release_arm64 \
             --buildNumber="${{ github.run_number }}"
           mkdir -p build/artifacts
           cp bazel-bin/Telegram/Telegram.ipa build/artifacts/Mokagram-unsigned.ipa
