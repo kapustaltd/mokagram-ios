@@ -75,6 +75,11 @@ public enum MokoLyricsParsing {
         return result
     }
 
+    /// The line being sung at `positionMs`: the last one that has started, nil before the first.
+    public static func currentLine(_ lines: [MokoLyricLine], positionMs: Int64) -> Int? {
+        return lines.lastIndex(where: { $0.timeMs <= positionMs })
+    }
+
     public static func parsePlain(_ text: String) -> MokoLyrics {
         let lines = text.components(separatedBy: "\n").map { MokoLyricLine(timeMs: 0, text: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
         return MokoLyrics(lines: lines, synced: false, found: !lines.isEmpty)

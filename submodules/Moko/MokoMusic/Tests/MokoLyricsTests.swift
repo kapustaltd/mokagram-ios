@@ -94,4 +94,12 @@ final class MokoLyricsTests: XCTestCase {
         XCTAssertTrue(mokoValue(service.fetch(cacheKey: "c", title: "S", artist: "A", durationMs: 100000))!.found)
         XCTAssertEqual(transport.log.count, count)
     }
+
+    func testCurrentLineIsLastStarted() {
+        let lines = [MokoLyricLine(timeMs: 1000, text: "a"), MokoLyricLine(timeMs: 5000, text: "b"), MokoLyricLine(timeMs: 9000, text: "c")]
+        XCTAssertNil(MokoLyricsParsing.currentLine(lines, positionMs: 500))
+        XCTAssertEqual(MokoLyricsParsing.currentLine(lines, positionMs: 1000), 0)
+        XCTAssertEqual(MokoLyricsParsing.currentLine(lines, positionMs: 8999), 1)
+        XCTAssertEqual(MokoLyricsParsing.currentLine(lines, positionMs: 60000), 2)
+    }
 }

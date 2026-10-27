@@ -182,6 +182,9 @@ private func mokoMusicRows(state: MokoMusicState, current: MokoMusicTrack?, stri
     if let current {
         rows.append(.header(id: 0, section: 0, text: strings.moko("Сейчас играет")))
         rows.append(.nowPlaying(id: 1, section: 0, title: current.title, artist: current.artist))
+        if MokoSettings.bool("lyrics.enabled", accountId: 0) {
+            rows.append(.lyrics(id: 2, section: 0, title: strings.moko("Текст песни")))
+        }
     }
     let tracks: (String, [MokoMusicTrack]) -> Void = { title, list in
         if !title.isEmpty {
@@ -333,6 +336,7 @@ public func mokoMusicController(context: AccountContext, initialQuery: String?) 
         let playlistLocation = PeerMessagesPlaylistLocation.custom(messages: .single((messages, Int32(messages.count), false)), canReorder: false, at: message.id, loadMore: nil, hidePanel: false)
         let _ = context.sharedContext.openChatMessage(OpenChatMessageParams(context: context, chatLocation: nil, chatFilterTag: nil, chatLocationContextHolder: nil, message: message._asMessage(), standalone: false, reverseMessageGalleryOrder: false, navigationController: nil, dismissInput: {}, present: { _, _, _ in }, transitionNode: { _, _, _ in return nil }, addToTransitionSurface: { _ in }, openUrl: { _ in }, openPeer: { _, _ in }, callPeer: { _, _ in }, openConferenceCall: { _ in }, enqueueMessage: { _ in }, sendSticker: nil, sendEmoji: nil, setupTemporaryHiddenMedia: { _, _, _ in }, chatAvatarHiddenMedia: { _, _ in }, playlistLocation: playlistLocation))
     }, openLyrics: {
+        controllerRef?()?.push(mokoLyricsController(context: context))
     }, artwork: { track in
         if let image = artworkCache.with({ $0[track.id] }) {
             return image

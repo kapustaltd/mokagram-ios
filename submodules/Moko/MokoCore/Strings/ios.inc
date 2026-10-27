@@ -101,3 +101,7 @@
 	{ "Добавляю в профиль…", "Adding to profile…" },
 	{ "Добавлено в профиль", "Added to profile" },
 	{ "Не получилось добавить в профиль. Трек остался в «Избранном».", "Could not add to the profile. The track stays in Saved Messages." },
+	{ "Сейчас ничего не играет.", "Nothing is playing now." },
+	{ "Ищу текст…", "Looking for lyrics…" },
+	{ "Текст без меток времени.", "Lyrics without timestamps." },
+	{ "Текст не найден", "Lyrics not found" },

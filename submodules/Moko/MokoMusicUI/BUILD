@@ -17,6 +17,7 @@ swift_library(
         "//submodules/AccountContext:AccountContext",
         "//submodules/Display:Display",
         "//submodules/ItemListUI:ItemListUI",
+        "//submodules/MediaPlayer:UniversalMediaPlayer",
         "//submodules/MusicAlbumArtResources:MusicAlbumArtResources",
         "//submodules/PresentationDataUtils:PresentationDataUtils",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",

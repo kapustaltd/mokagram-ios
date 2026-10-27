@@ -24,6 +24,8 @@ import BundleIconComponent
 import ButtonComponent
 import Markdown
 import TextFormat
+import MokoCore
+import MokoMusicUI
 
 private func normalizeValue(_ value: CGFloat) -> CGFloat {
     return round(value * 10.0) / 10.0
@@ -205,6 +207,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
     var control: ((SharedMediaPlayerControlAction) -> Void)?
     
     var getParentController: () -> ViewController? = { return nil }
+    var lyricsContext: (() -> AccountContext?)?
     
     let forceCopyProtected = ValuePromise<Bool>(false)
     
@@ -571,6 +574,8 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         super.didLoad()
         
         self.albumArtNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.albumArtTap(_:))))
+        // mokaGram: a long press on the cover opens the lyrics of the playing track.
+        self.albumArtNode.view.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(self.albumArtLongPress(_:))))
         
         let backwardLongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.seekBackwardLongPress(_:)))
         backwardLongPressGestureRecognizer.minimumPressDuration = 0.3
@@ -1213,6 +1218,13 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         }
     }
     
+    @objc func albumArtLongPress(_ recognizer: UILongPressGestureRecognizer) {
+        guard case .began = recognizer.state, MokoSettings.bool("lyrics.enabled", accountId: 0), let controller = self.getParentController(), let context = self.lyricsContext?() else {
+            return
+        }
+        controller.push(mokoLyricsController(context: context))
+    }
+
     @objc func artistPressed() {
         let (_, descriptionString, _, _) = stringsForDisplayData(self.displayData, presentationData: self.presentationData)
         if let artist = descriptionString?.string {
