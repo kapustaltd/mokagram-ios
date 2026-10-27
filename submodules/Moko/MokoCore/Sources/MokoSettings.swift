@@ -76,12 +76,63 @@ public enum MokoSettings {
     private static var indices: [String: Int] = [:]
     private static var builtinsLoaded = false
 
+    /// Values imported from a .mokaset for keys nobody had registered yet, per account:
+    /// `mokoGram.s.unknown.<accountId>.<key>` holding the JSON-encoded value.
+    static let unknownPrefix = "mokoGram.s.unknown."
+
+    static func unknownStorageKey(_ key: String, accountId: Int64) -> String {
+        return "\(unknownPrefix)\(accountId).\(key)"
+    }
+
+    /// (accountId, key, JSON text) of every stored unknown value.
+    static func unknownValues() -> [(accountId: Int64, key: String, storageKey: String, json: String)] {
+        var result: [(Int64, String, String, String)] = []
+        for (storageKey, raw) in MokoStorage.defaults.dictionaryRepresentation() where storageKey.hasPrefix(unknownPrefix) {
+            let rest = storageKey.dropFirst(unknownPrefix.count)
+            guard let dot = rest.firstIndex(of: "."), let accountId = Int64(rest[..<dot]), let json = raw as? String else {
+                continue
+            }
+            result.append((accountId, String(rest[rest.index(after: dot)...]), storageKey, json))
+        }
+        return result
+    }
+
+    /// Lock must not be held: applies imported values of keys that have just been registered.
+    private static func adoptUnknownValues(for entries: [MokoSettingEntry]) {
+        let byKey = Dictionary(entries.map { ($0.key, $0) }, uniquingKeysWith: { _, last in last })
+        let defaults = MokoStorage.defaults
+        for unknown in unknownValues() {
+            guard let entry = byKey[unknown.key] else {
+                continue
+            }
+            defaults.removeObject(forKey: unknown.storageKey)
+            guard let data = unknown.json.data(using: .utf8), let raw = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]), let value = MokoSettingsFile.decode(raw, for: entry), value != entry.defaultValue else {
+                continue
+            }
+            let target = storageKey(entry, accountId: unknown.accountId)
+            switch value {
+            case let .bool(raw):
+                defaults.set(raw, forKey: target)
+            case let .int(raw):
+                defaults.set(raw, forKey: target)
+            case let .string(raw):
+                defaults.set(raw, forKey: target)
+            }
+        }
+    }
+
     private static func ensureBuiltins() {
-        if !builtinsLoaded {
+        lock.lock()
+        let needsLoad = !builtinsLoaded
+        if needsLoad {
             builtinsLoaded = true
             for entry in MokoBuiltinSettings.entries {
                 insert(entry)
             }
+        }
+        lock.unlock()
+        if needsLoad {
+            adoptUnknownValues(for: MokoBuiltinSettings.entries)
         }
     }
 
@@ -104,25 +155,26 @@ public enum MokoSettings {
 
     /// Registering the same key again replaces the entry.
     public static func register(_ entries: [MokoSettingEntry]) {
-        lock.lock()
         ensureBuiltins()
+        lock.lock()
         for entry in entries {
             insert(entry)
         }
         lock.unlock()
+        adoptUnknownValues(for: entries)
     }
 
     public static func entries() -> [MokoSettingEntry] {
+        ensureBuiltins()
         lock.lock()
         defer { lock.unlock() }
-        ensureBuiltins()
         return registered
     }
 
     public static func entry(_ key: String) -> MokoSettingEntry? {
+        ensureBuiltins()
         lock.lock()
         defer { lock.unlock() }
-        ensureBuiltins()
         return indices[key].flatMap { registered[$0] }
     }
 
@@ -233,9 +285,13 @@ public enum MokoSettings {
         }
     }
 
+    /// Also drops this account's imported values for keys nobody has registered.
     public static func resetAll(accountId: Int64) {
         for entry in entries() {
             reset(entry.key, accountId: accountId)
+        }
+        for unknown in unknownValues() where unknown.accountId == accountId {
+            MokoStorage.defaults.removeObject(forKey: unknown.storageKey)
         }
     }
 

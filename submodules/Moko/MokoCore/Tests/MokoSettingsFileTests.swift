@@ -69,4 +69,27 @@ final class MokoSettingsFileTests: XCTestCase {
         XCTAssertTrue(MokoSettings.bool("commands.enabled", accountId: 1))
         XCTAssertGreaterThanOrEqual(summary.unknown, 1)
     }
+
+    func testUnknownKeysAreAccountScoped() throws {
+        _ = MokoSettingsFile.apply(file("{\"lag.level\":2}"), accountId: 1)
+        let other = try JSONSerialization.jsonObject(with: MokoSettingsFile.export(accountId: 2, appVersion: "x")) as! [String: Any]
+        XCTAssertNil((other["values"] as? [String: Any])?["lag.level"])
+    }
+
+    func testRegisteringImportedUnknownKeyAppliesIt() throws {
+        _ = MokoSettingsFile.apply(file("{\"test.later\":7}"), accountId: 1)
+        MokoSettings.register([MokoSettingEntry(key: "test.later", page: .system, section: "Тест", title: "Позже", description: "", kind: .int(min: 0, max: 10), defaultValue: .int(1), scope: .account)])
+        XCTAssertEqual(MokoSettings.int("test.later", accountId: 1), 7)
+        XCTAssertEqual(MokoSettings.int("test.later", accountId: 2), 1)
+        MokoSettings.reset("test.later", accountId: 1)
+        let root = try JSONSerialization.jsonObject(with: MokoSettingsFile.export(accountId: 1, appVersion: "x")) as! [String: Any]
+        XCTAssertNil((root["values"] as? [String: Any])?["test.later"], "a reset value must not come back from the import store")
+    }
+
+    func testResetAllClearsUnknownKeys() throws {
+        _ = MokoSettingsFile.apply(file("{\"lag.level\":2}"), accountId: 1)
+        MokoSettings.resetAll(accountId: 1)
+        let root = try JSONSerialization.jsonObject(with: MokoSettingsFile.export(accountId: 1, appVersion: "x")) as! [String: Any]
+        XCTAssertEqual((root["values"] as? [String: Any])?.count, 0)
+    }
 }

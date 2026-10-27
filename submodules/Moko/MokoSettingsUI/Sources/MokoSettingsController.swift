@@ -162,11 +162,6 @@ private func mokoPageRows(page: MokoSettingPage, accountId: Int64, strings: Pres
         }
         bySection[row.section, default: []].append((index, row))
     }
-    if needsRestart {
-        builder.add { .header(id: $0, section: $1, text: strings.moko("Нужен перезапуск")) }
-        builder.add { .footer(id: $0, section: $1, text: strings.moko("Часть изменений заработает после перезапуска приложения.")) }
-        builder.newSection()
-    }
     for section in sections {
         var first = true
         for item in bySection[section] ?? [] {
@@ -196,6 +191,13 @@ private func mokoPageRows(page: MokoSettingPage, accountId: Int64, strings: Pres
     }
     builder.add { .button(id: $0, section: $1, title: strings.moko("Сбросить страницу"), destructive: true, action: .resetPage(page)) }
     builder.add { .footer(id: $0, section: $1, text: strings.moko("Изменённые значения отмечены точкой.")) }
+    // Row ids are positions, so anything that appears while the page is open goes last: rows above
+    // keep their ids and an item node is never handed a row of another kind.
+    if needsRestart {
+        builder.newSection()
+        builder.add { .header(id: $0, section: $1, text: strings.moko("Нужен перезапуск")) }
+        builder.add { .footer(id: $0, section: $1, text: strings.moko("Часть изменений заработает после перезапуска приложения.")) }
+    }
     return builder.rows
 }
 
@@ -412,7 +414,12 @@ private func mokoSettingsListController(context: AccountContext, page: MokoSetti
                 }),
             ]))
         case let .resetPage(page):
-            MokoSettings.reset(page: page, accountId: accountId)
+            present(textAlertController(context: context, title: strings.moko("Сбросить страницу") + "?", text: strings.moko("Значения этого аккаунта и устройства вернутся к значениям по умолчанию. Заметки, сниппеты и исключения останутся."), actions: [
+                TextAlertAction(type: .genericAction, title: strings.moko("Отмена"), action: {}),
+                TextAlertAction(type: .destructiveAction, title: strings.moko("Сбросить"), action: {
+                    MokoSettings.reset(page: page, accountId: accountId)
+                }),
+            ]))
         case let .url(url):
             context.sharedContext.applicationBindings.openUrl(url)
         }

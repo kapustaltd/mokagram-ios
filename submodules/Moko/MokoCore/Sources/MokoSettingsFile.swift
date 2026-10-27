@@ -26,10 +26,8 @@ public enum MokoSettingsFileError: Error, Equatable {
 /// `{"format":"mokaset","app":…,"version":1,"values":{key: value}}` with only non-default values.
 public enum MokoSettingsFile {
     static let formatVersion = 1
-    private static let unknownPrefix = "mokoGram.s.unknown."
 
     public static func export(accountId: Int64, appVersion: String) -> Data {
-        let defaults = MokoStorage.defaults
         var values: [String: Any] = [:]
         for entry in MokoSettings.entries() where entry.kind != .action && MokoSettings.isChanged(entry.key, accountId: accountId) {
             switch MokoSettings.value(entry.key, accountId: accountId) {
@@ -43,10 +41,9 @@ public enum MokoSettingsFile {
                 break
             }
         }
-        for (storageKey, raw) in defaults.dictionaryRepresentation() where storageKey.hasPrefix(unknownPrefix) {
-            let key = String(storageKey.dropFirst(unknownPrefix.count))
-            if values[key] == nil, let text = raw as? String, let data = text.data(using: .utf8), let value = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) {
-                values[key] = value
+        for unknown in MokoSettings.unknownValues() where unknown.accountId == accountId && MokoSettings.entry(unknown.key) == nil {
+            if let data = unknown.json.data(using: .utf8), let value = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) {
+                values[unknown.key] = value
             }
         }
         let root: [String: Any] = ["format": "mokaset", "app": appVersion, "version": formatVersion, "values": values]
@@ -80,7 +77,7 @@ public enum MokoSettingsFile {
             guard let entry = MokoSettings.entry(key) else {
                 summary.unknown += 1
                 if apply, let encoded = try? JSONSerialization.data(withJSONObject: raw, options: [.fragmentsAllowed]), let text = String(data: encoded, encoding: .utf8) {
-                    MokoStorage.defaults.set(text, forKey: unknownPrefix + key)
+                    MokoStorage.defaults.set(text, forKey: MokoSettings.unknownStorageKey(key, accountId: accountId))
                 }
                 continue
             }
@@ -99,7 +96,7 @@ public enum MokoSettingsFile {
     }
 
     /// A JSON value as a value of this entry, or nil when it does not fit.
-    private static func decode(_ raw: Any, for entry: MokoSettingEntry) -> MokoSettingValue? {
+    static func decode(_ raw: Any, for entry: MokoSettingEntry) -> MokoSettingValue? {
         let isBoolean = (raw as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() } ?? false
         switch entry.defaultValue {
         case .bool:
