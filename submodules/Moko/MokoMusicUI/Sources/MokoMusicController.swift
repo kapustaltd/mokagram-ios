@@ -177,8 +177,8 @@ private func audioTitle(_ message: EngineMessage) -> (String, String) {
 
 private func mokoMusicRows(state: MokoMusicState, current: MokoMusicTrack?, strings: PresentationStrings) -> [MokoMusicRow] {
     var rows: [MokoMusicRow] = []
-    // Ids are fixed per role (tracks and messages by position in their own range), so switching a
-    // tab never hands an item node a row of another kind.
+    // Every id belongs to one kind of row on every tab (tracks and messages by position in their
+    // own range) and ids grow down the list: a same-id row of another kind stalls the list update.
     if let current {
         rows.append(.header(id: 0, section: 0, text: strings.moko("Сейчас играет")))
         rows.append(.nowPlaying(id: 1, section: 0, title: current.title, artist: current.artist))
@@ -205,12 +205,12 @@ private func mokoMusicRows(state: MokoMusicState, current: MokoMusicTrack?, stri
         }
         tracks("", state.results)
         if state.nextOffset != nil {
-            rows.append(.button(id: 900, section: 3, title: state.searching ? strings.moko("Загрузка…") : strings.moko("Ещё"), action: 0))
+            rows.append(.button(id: 100_000, section: 3, title: state.searching ? strings.moko("Загрузка…") : strings.moko("Ещё"), action: 0))
         }
     case .forYou:
-        rows.append(.button(id: 10, section: 1, title: state.forYouLoading ? strings.moko("Подбираю…") : strings.moko("Обновить"), action: 1))
+        rows.append(.button(id: 13, section: 1, title: state.forYouLoading ? strings.moko("Подбираю…") : strings.moko("Обновить"), action: 1))
         if !state.forYouNote.isEmpty {
-            rows.append(.footer(id: 11, section: 1, text: strings.moko(state.forYouNote)))
+            rows.append(.footer(id: 14, section: 1, text: strings.moko(state.forYouNote)))
         }
         tracks(strings.moko("Для вас"), state.forYou)
     case .likes:

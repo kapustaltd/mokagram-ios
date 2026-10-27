@@ -34,12 +34,15 @@ enum MokoTrackSending {
         return cover
         |> map { data -> TelegramMediaFile in
             let fileId = Int64.random(in: Int64.min ... Int64.max)
-            let copy = FileManager.default.temporaryDirectory.appendingPathComponent("moko-send-\(fileId).\(track.fileExtension)")
+            let kind = track.matchingFile(url)
+            let copy = FileManager.default.temporaryDirectory.appendingPathComponent("moko-send-\(fileId).\(kind.fileExtension)")
             try? FileManager.default.copyItem(at: url, to: copy)
             var previews: [TelegramMediaImageRepresentation] = []
             if let data, let image = UIImage(data: data) {
                 let size = CGSize(width: 320.0, height: 320.0)
-                let thumbnail = UIGraphicsImageRenderer(size: size).image { _ in
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 1.0
+                let thumbnail = UIGraphicsImageRenderer(size: size, format: format).image { _ in
                     image.draw(in: CGRect(origin: .zero, size: size))
                 }
                 if let jpeg = thumbnail.jpegData(compressionQuality: 0.8) {
@@ -56,11 +59,11 @@ enum MokoTrackSending {
                 previewRepresentations: previews,
                 videoThumbnails: [],
                 immediateThumbnailData: nil,
-                mimeType: track.fileExtension == "m4a" ? "audio/mp4" : "audio/mpeg",
+                mimeType: kind.mimeType,
                 size: size,
                 attributes: [
                     .Audio(isVoice: false, duration: track.durationMs / 1000, title: track.title, performer: track.artist, waveform: nil),
-                    .FileName(fileName: "\(track.artist) - \(track.title).\(track.fileExtension)"),
+                    .FileName(fileName: "\(track.artist) - \(track.title).\(kind.fileExtension)"),
                 ],
                 alternativeRepresentations: []
             )

@@ -121,6 +121,8 @@ public final class MokoMusicPlaylist: SharedMediaPlaylist {
             self.recordCurrentListen()
             self.queue.jump(to: index)
             self.loadCurrent()
+            // Not routed through SharedMediaPlayer.control, so nothing schedules playback otherwise.
+            self.accountContext.sharedContext.mediaManager.playlistControl(.playback(.play), type: .music)
         })
     }
 

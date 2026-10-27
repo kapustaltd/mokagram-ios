@@ -48,7 +48,7 @@ private final class MokoLyricsArguments {
 
 private enum MokoLyricsRow: ItemListNodeEntry {
     case header(text: String)
-    case line(index: Int, text: String, timeMs: Int64, isCurrent: Bool)
+    case line(index: Int, text: String, timeMs: Int64?, isCurrent: Bool)
     case footer(text: String)
 
     var section: ItemListSectionId {
@@ -62,7 +62,7 @@ private enum MokoLyricsRow: ItemListNodeEntry {
         case let .line(index, _, _, _):
             return 10 + Int32(index)
         case .footer:
-            return 1
+            return 1_000_000
         }
     }
 
@@ -76,8 +76,11 @@ private enum MokoLyricsRow: ItemListNodeEntry {
         case let .header(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .line(index, text, timeMs, isCurrent):
+            // Lines without timestamps have no time to seek to.
             return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: text.isEmpty ? "♪" : text, kind: isCurrent ? .generic : .neutral, alignment: .natural, sectionId: self.section, style: .blocks, action: {
-                arguments.seek(timeMs)
+                if let timeMs {
+                    arguments.seek(timeMs)
+                }
             }, tag: MokoLyricLineTag(index: index))
         case let .footer(text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
@@ -168,7 +171,7 @@ public func mokoLyricsController(context: AccountContext) -> ViewController {
             rows.append(.footer(text: strings.moko("Ищу текст…")))
         } else if let lyrics = state.lyrics, lyrics.found {
             for (index, line) in lyrics.lines.enumerated() {
-                rows.append(.line(index: index, text: line.text, timeMs: lyrics.synced ? line.timeMs : 0, isCurrent: lyrics.synced && index == state.currentLine))
+                rows.append(.line(index: index, text: line.text, timeMs: lyrics.synced ? line.timeMs : nil, isCurrent: lyrics.synced && index == state.currentLine))
             }
             if !lyrics.synced {
                 rows.append(.footer(text: strings.moko("Текст без меток времени.")))

@@ -79,4 +79,14 @@ final class MokoMusicTrackTests: XCTestCase {
         let decoded = try JSONDecoder().decode(MokoMusicTrack.self, from: JSONEncoder().encode(track))
         XCTAssertEqual(decoded, track)
     }
+
+    func testDownloadedFileDecidesExtensionAndMime() {
+        var track = MokoSoundCloudParser.track(object(transcodings: []))
+        track.fileExtension = "mp3"
+        let aac = track.matchingFile(URL(fileURLWithPath: "/cache/42.m4a"))
+        XCTAssertEqual(aac.fileExtension, "m4a")
+        XCTAssertEqual(aac.mimeType, "audio/mp4")
+        let mp3 = track.matchingFile(URL(fileURLWithPath: "/cache/42.mp3"))
+        XCTAssertEqual(mp3.mimeType, "audio/mpeg")
+    }
 }

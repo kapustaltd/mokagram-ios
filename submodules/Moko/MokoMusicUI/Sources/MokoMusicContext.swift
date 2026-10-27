@@ -47,7 +47,11 @@ public final class MokoMusicContext {
 
     /// Desktop's `DocumentIdForTrack`: 0x4D4F4B << 40 plus the numeric track id.
     public static func fileId(for track: MokoMusicTrack) -> Int64 {
-        let numeric = UInt64(track.id) ?? UInt64(truncatingIfNeeded: track.id.hashValue)
+        return fileId(forTrackId: track.id)
+    }
+
+    public static func fileId(forTrackId id: String) -> Int64 {
+        let numeric = UInt64(id) ?? UInt64(truncatingIfNeeded: id.hashValue)
         return Int64(bitPattern: 0x4D4F4B0000000000 &+ numeric)
     }
 
@@ -58,7 +62,8 @@ public final class MokoMusicContext {
             MokoArtworkRegistry.register(fileId: fileId, url: artwork)
         }
         let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
-        let mimeType = track.fileExtension == "m4a" ? "audio/mp4" : "audio/mpeg"
+        let kind = track.matchingFile(URL(fileURLWithPath: path))
+        let mimeType = kind.mimeType
         return TelegramMediaFile(
             fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: fileId),
             partialReference: nil,
@@ -70,7 +75,7 @@ public final class MokoMusicContext {
             size: size,
             attributes: [
                 .Audio(isVoice: false, duration: track.durationMs / 1000, title: track.title, performer: track.artist, waveform: nil),
-                .FileName(fileName: "\(track.artist) - \(track.title).\(track.fileExtension)"),
+                .FileName(fileName: "\(track.artist) - \(track.title).\(kind.fileExtension)"),
             ],
             alternativeRepresentations: []
         )

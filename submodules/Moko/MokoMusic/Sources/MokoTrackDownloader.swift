@@ -157,6 +157,11 @@ public final class MokoTrackDownloader {
         }
     }
 
+    /// Track ids of every cached file.
+    public func cachedTrackIds() -> [String] {
+        return self.files().map { $0.url.deletingPathExtension().lastPathComponent }
+    }
+
     public func clear(protecting: Set<URL>) {
         let protected = Set(protecting.map(\.standardizedFileURL))
         for file in self.files() where !protected.contains(file.url.standardizedFileURL) {

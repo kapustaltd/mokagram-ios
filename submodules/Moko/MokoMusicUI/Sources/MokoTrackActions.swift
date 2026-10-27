@@ -69,7 +69,7 @@ public enum MokoTrackActions {
         sheet.addAction(UIAlertAction(title: strings.moko("Сохранить в Файлы"), style: .default, handler: { _ in
             let _ = (music.downloader.download(track)
             |> deliverOnMainQueue).start(next: { url in
-                let named = FileManager.default.temporaryDirectory.appendingPathComponent("\(track.artist) - \(track.title).\(track.fileExtension)".replacingOccurrences(of: "/", with: "_"))
+                let named = FileManager.default.temporaryDirectory.appendingPathComponent("\(track.artist) - \(track.title).\(track.matchingFile(url).fileExtension)".replacingOccurrences(of: "/", with: "_"))
                 try? FileManager.default.removeItem(at: named)
                 try? FileManager.default.copyItem(at: url, to: named)
                 presentNative(context, UIActivityViewController(activityItems: [named], applicationActivities: nil))

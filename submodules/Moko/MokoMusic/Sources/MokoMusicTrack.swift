@@ -51,6 +51,20 @@ public struct MokoMusicTrack: Codable, Hashable {
     }
 }
 
+/// What a downloaded track file really is. A stored (liked) track keeps no stream variant, so its
+/// own `fileExtension` is a guess; the file the downloader produced is authoritative.
+public struct MokoTrackFileKind: Equatable {
+    public let fileExtension: String
+    public let mimeType: String
+}
+
+extension MokoMusicTrack {
+    public func matchingFile(_ url: URL) -> MokoTrackFileKind {
+        let fileExtension = url.pathExtension.isEmpty ? self.fileExtension : url.pathExtension.lowercased()
+        return MokoTrackFileKind(fileExtension: fileExtension, mimeType: fileExtension == "m4a" ? "audio/mp4" : "audio/mpeg")
+    }
+}
+
 /// Parses api-v2 track objects exactly as Desktop's `ParseTrack` (mokagram_soundcloud.cpp).
 public enum MokoSoundCloudParser {
     private static let tagPattern = try! NSRegularExpression(pattern: "\"([^\"]+)\"|(\\S+)")
