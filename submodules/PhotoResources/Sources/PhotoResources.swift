@@ -3102,7 +3102,7 @@ private func drawAlbumArtPlaceholder(into c: CGContext, arguments: TransformImag
     }
 }
 
-public func playerAlbumArt(engine: TelegramEngine, fileReference: FileMediaReference?, albumArt: SharedMediaPlaybackAlbumArt?, thumbnail: Bool, overlayColor: UIColor? = nil, emptyColor: UIColor? = nil, drawPlaceholderWhenEmpty: Bool = true, attemptSynchronously: Bool = false) -> Signal<(TransformImageArguments) -> DrawingContext?, NoError> {
+public func playerAlbumArt(engine: TelegramEngine, fileReference: FileMediaReference?, albumArt: SharedMediaPlaybackAlbumArt?, thumbnail: Bool, overlayColor: UIColor? = nil, emptyColor: UIColor? = nil, drawPlaceholderWhenEmpty: Bool = true, attemptSynchronously: Bool = false, placeholderSeed: String? = nil) -> Signal<(TransformImageArguments) -> DrawingContext?, NoError> {
     let postbox = engine.account.postbox
     var fileArtworkData: Signal<Data?, NoError> = .single(nil)
     if let fileReference = fileReference {
@@ -3187,10 +3187,17 @@ public func playerAlbumArt(engine: TelegramEngine, fileReference: FileMediaRefer
                 }
             }
         }
+    } else if let fileReference = fileReference, smallestImageRepresentation(fileReference.media.previewRepresentations) != nil {
+        // No title and performer to look a cover up by (or not a thumbnail request): the file's own
+        // preview is still a cover, so use it instead of drawing the empty placeholder.
+        immediateArtworkData = previewArtworkData(fileReference: fileReference)
+        |> map { previewData in
+            return Tuple(previewData, nil, false)
+        }
     } else {
         immediateArtworkData = .single(Tuple(nil, nil, false))
     }
-    
+
     return combineLatest(fileArtworkData, immediateArtworkData)
     |> map { fileArtworkData, remoteArtworkData in
         let remoteThumbnailData = remoteArtworkData._0
@@ -3225,6 +3232,10 @@ public func playerAlbumArt(engine: TelegramEngine, fileReference: FileMediaRefer
                         let rect = arguments.drawingRect
                         c.setFillColor(emptyColor.cgColor)
                         c.fill(rect)
+                    }
+                } else if let placeholderSeed = placeholderSeed {
+                    context.withFlippedContext { c in
+                        MusicCoverPlaceholder.draw(into: c, rect: arguments.drawingRect, seed: placeholderSeed)
                     }
                 } else if drawPlaceholderWhenEmpty {
                     context.withFlippedContext { c in
