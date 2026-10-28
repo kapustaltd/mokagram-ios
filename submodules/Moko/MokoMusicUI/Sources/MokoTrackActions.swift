@@ -24,14 +24,17 @@ public enum MokoTrackActions {
         context.sharedContext.applicationBindings.presentNativeController(controller)
     }
 
-    /// `play` starts the list the row belongs to from this track.
-    public static func present(track: MokoMusicTrack, context: AccountContext, from controller: ViewController, play: @escaping () -> Void) {
+    /// `play` starts the list the row belongs to from this track; nil leaves the "Listen" action out
+    /// (the track is already playing).
+    public static func present(track: MokoMusicTrack, context: AccountContext, from controller: ViewController, play: (() -> Void)?) {
         let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
         let music = MokoMusicContext.shared
         let sheet = UIAlertController(title: track.title, message: track.artist, preferredStyle: .actionSheet)
-        sheet.addAction(UIAlertAction(title: strings.moko("Слушать"), style: .default, handler: { _ in
-            play()
-        }))
+        if let play {
+            sheet.addAction(UIAlertAction(title: strings.moko("Слушать"), style: .default, handler: { _ in
+                play()
+            }))
+        }
         let liked = music.library.isLiked(track.id)
         sheet.addAction(UIAlertAction(title: strings.moko(liked ? "Убрать из понравившихся" : "Нравится"), style: .default, handler: { _ in
             music.library.setLiked(track, !liked)

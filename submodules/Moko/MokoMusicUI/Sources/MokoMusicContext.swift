@@ -36,7 +36,12 @@ public final class MokoMusicContext {
         return self.queuePromise.get()
     }
 
+    /// The SoundCloud track that is playing now, nil when no SoundCloud queue plays. The player sheet
+    /// uses it to offer like / send / add-to-profile for a catalogue track.
+    public private(set) var currentTrack: MokoMusicTrack?
+
     func updateQueue(_ queue: MokoMusicQueue?) {
+        self.currentTrack = queue?.current
         self.queuePromise.set(queue)
     }
 
