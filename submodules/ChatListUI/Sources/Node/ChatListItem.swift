@@ -1450,6 +1450,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     private var hierarchyTrackingLayer: HierarchyTrackingLayer?
     private var cachedDataDisposable = MetaDisposable()
     private var mokoNoteObserver: NSObjectProtocol?
+    private var mokaBadgesObserver: NSObjectProtocol?
     
     private var currentTextLeftCutout: CGFloat = 0.0
     private var currentMediaPreviewSpecs: [ContentImageSpec] = []
@@ -1789,6 +1790,13 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 let _ = apply(false, false)
             }
         })
+        self.mokaBadgesObserver = NotificationCenter.default.addObserver(forName: mokaBadgesChangedNotificationName, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self, self.item != nil, let layoutParams = self.layoutParams else {
+                return
+            }
+            let (_, apply) = self.asyncLayout()(layoutParams.0, layoutParams.6, layoutParams.1, layoutParams.2, layoutParams.3, layoutParams.4, layoutParams.5)
+            apply(false, false)
+        })
         self.mokoNoteObserver = NotificationCenter.default.addObserver(forName: MokoLocalPeerNotes.changed, object: nil, queue: .main, using: { [weak self] notification in
             guard let self, let item = self.item, case let .peer(peerData) = item.content,
                   let peer = peerData.peer.chatOrMonoforumMainPeer,
@@ -1852,6 +1860,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.cachedDataDisposable.dispose()
         if let mokoNoteObserver = self.mokoNoteObserver {
             NotificationCenter.default.removeObserver(mokoNoteObserver)
+        }
+        if let mokaBadgesObserver = self.mokaBadgesObserver {
+            NotificationCenter.default.removeObserver(mokaBadgesObserver)
         }
     }
     
@@ -3619,7 +3630,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                                 currentCredibilityIconContent = .premium(color: item.presentationData.theme.list.itemAccentColor)
                             }
                             
-                            if peer.isVerified {
+                            if peer.isVerifiedForDisplay {
                                 currentCredibilityIconContent = .verified(fillColor: item.presentationData.theme.list.itemCheckColors.fillColor, foregroundColor: item.presentationData.theme.list.itemCheckColors.foregroundColor, sizeType: .compact)
                             }
                             if let verificationIconFileId = peer.verificationIconFileId {
@@ -3650,7 +3661,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         currentCredibilityIconContent = .premium(color: item.presentationData.theme.list.itemAccentColor)
                     }
                     
-                    if peer.isVerified {
+                    if peer.isVerifiedForDisplay {
                         currentCredibilityIconContent = .verified(fillColor: item.presentationData.theme.list.itemCheckColors.fillColor, foregroundColor: item.presentationData.theme.list.itemCheckColors.foregroundColor, sizeType: .compact)
                     }
                     if let verificationIconFileId = peer.verificationIconFileId {

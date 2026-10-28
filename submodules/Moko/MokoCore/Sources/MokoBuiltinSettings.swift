@@ -8,9 +8,16 @@ public enum MokoBuiltinSettings {
     private static let schedule = "По расписанию"
     private static let commands = "Быстрые команды"
     private static let player = "Плеер"
+    private static let saveinator = "Скачивание по ссылкам"
 
     private static func ghostFlag(_ key: String, _ title: String, _ description: String, defaultValue: Bool = true, dependsOn: String = "ghost.enabled", section: String = MokoBuiltinSettings.ghost, hidden: Bool = false) -> MokoSettingEntry {
         return MokoSettingEntry(key: key, page: .privacy, section: section, title: title, description: description, kind: .bool, defaultValue: .bool(defaultValue), scope: .account, dependsOn: dependsOn, hidden: hidden)
+    }
+
+    private static let streamer = "Режим стримера"
+
+    private static func streamerFlag(_ key: String, _ title: String, _ description: String, _ defaultValue: Bool) -> MokoSettingEntry {
+        return MokoSettingEntry(key: key, page: .privacy, section: streamer, title: title, description: description, kind: .bool, defaultValue: .bool(defaultValue), scope: .device, dependsOn: "streamer.enabled")
     }
 
     public static let entries: [MokoSettingEntry] = [
@@ -28,12 +35,25 @@ public enum MokoBuiltinSettings {
         ghostFlag("ghost.sched_online", "Скрыть «в сети»", "", dependsOn: "ghost.schedule", section: schedule),
         ghostFlag("ghost.sched_typing", "Не показывать «печатает»", "", dependsOn: "ghost.schedule", section: schedule),
         ghostFlag("ghost.sched_stories", "Скрыть просмотры историй", "", defaultValue: false, dependsOn: "ghost.schedule", section: schedule),
+        // Streamer mode: device-wide, since it protects the screen rather than an account.
+        MokoSettingEntry(key: "streamer.enabled", page: .privacy, section: streamer, title: "Режим стримера", description: "Прячет ваш номер, юзернейм и ID на экране, чтобы их не увидели зрители.", kind: .bool, defaultValue: .bool(false), scope: .device),
+        streamerFlag("streamer.phone", "Номер телефона", "Ваш номер в настройках, профиле и меню.", true),
+        streamerFlag("streamer.username", "Юзернейм", "Ваш @юзернейм там, где он показан.", true),
+        streamerFlag("streamer.link", "Ссылки на ваш профиль", "Адреса вида t.me/ваш_ник.", true),
+        streamerFlag("streamer.id", "Числовой ID", "Служебный номер вашего аккаунта.", true),
+        streamerFlag("streamer.name", "Имя и фамилия", "Только ваши: в профиле, меню и настройках. Чужие имена в чатах не трогаем.", false),
+        streamerFlag("streamer.notify", "Текст уведомлений", "Во всплывающих уведомлениях не видно, кто написал и что именно.", false),
+        MokoSettingEntry(key: "streamer.copy", page: .privacy, section: streamer, title: "Что копировать со скрытым", description: "Что попадёт в буфер обмена, если скопировать спрятанное значение.", kind: .choice(["Настоящее значение", "Ничего", "Точки"]), defaultValue: .int(0), scope: .device, dependsOn: "streamer.enabled"),
         MokoSettingEntry(key: "commands.enabled", page: .tools, section: commands, title: "Быстрые команды", description: "Команды: .calc, .id, .snip, .tag, .note, .archive, .unarchive, .mute, .unmute и .save. Они выполняются на телефоне и не отправляются в чат.", kind: .bool, defaultValue: .bool(false), scope: .account),
         // Music: device-wide, as on Desktop (appearance/mokagram_appearance.cpp:187-212).
         MokoSettingEntry(key: "player.autoplay_next", page: .music, section: player, title: "Автовоспроизведение следующего", description: "Когда трек заканчивается, начинается следующий в очереди.", kind: .bool, defaultValue: .bool(true), scope: .device),
         MokoSettingEntry(key: "player.cover_colors", page: .music, section: player, title: "Цвета плеера из обложки", description: "", kind: .bool, defaultValue: .bool(true), scope: .device, hidden: true),
         MokoSettingEntry(key: "lyrics.enabled", page: .music, section: player, title: "Текст песни", description: "Тексты берутся из LRCLIB, а если там нет, из NetEase.", kind: .bool, defaultValue: .bool(true), scope: .device),
         MokoSettingEntry(key: "music.cache_mb", page: .music, section: player, title: "Кэш музыки, МБ", description: "Скачанные треки SoundCloud. Самые старые удаляются, когда кэш больше этого размера.", kind: .int(min: 100, max: 5000), defaultValue: .int(500), scope: .device),
+        // Saveinator: device-wide, as on Desktop (saveinator/mokagram_saveinator.cpp).
+        MokoSettingEntry(key: "saveinator.enabled", page: .chats, section: saveinator, title: "Скачивание видео и музыки по ссылкам", description: "Если отправить только ссылку на YouTube, TikTok, X, Instagram, Reddit, Pinterest, VK, Spotify, SoundCloud или Яндекс Музыку, клиент предложит скачать видео, фото или трек и отправить файл вместо ссылки.", kind: .bool, defaultValue: .bool(true), scope: .device),
+        MokoSettingEntry(key: "saveinator.media", page: .chats, section: saveinator, title: "Формат скачивания", description: "", kind: .int(min: 0, max: 3), defaultValue: .int(0), scope: .device, hidden: true),
+        MokoSettingEntry(key: "saveinator.quality", page: .chats, section: saveinator, title: "Качество скачивания", description: "", kind: .int(min: 0, max: 4), defaultValue: .int(2), scope: .device, hidden: true),
         MokoSettingEntry(key: "commands.aliases", page: .tools, section: commands, title: "Алиасы команд", description: "", kind: .string, defaultValue: .string(""), scope: .account, dependsOn: "commands.enabled", hidden: true),
     ]
 }

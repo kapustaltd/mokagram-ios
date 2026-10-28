@@ -590,6 +590,14 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
         }
     }
         
+    private var mokaBadgesObserver: NSObjectProtocol?
+    
+    deinit {
+        if let mokaBadgesObserver = self.mokaBadgesObserver {
+            NotificationCenter.default.removeObserver(mokaBadgesObserver)
+        }
+    }
+        
     required public init() {
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isLayerBacked = true
@@ -662,6 +670,13 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             }
         })
         
+        self.mokaBadgesObserver = NotificationCenter.default.addObserver(forName: mokaBadgesChangedNotificationName, object: nil, queue: .main, using: { [weak self] _ in
+            if let strongSelf = self, let layoutParams = strongSelf.layoutParams {
+                let (_, apply) = strongSelf.asyncLayout()(layoutParams.0, layoutParams.1, layoutParams.2, layoutParams.3, layoutParams.4, layoutParams.5)
+                let _ = apply()
+            }
+        })
+
         self.containerNode.activated = { [weak self] gesture, _ in
             guard let strongSelf = self, let item = strongSelf.item, let contextAction = item.contextAction else {
                 gesture.cancel()
@@ -888,7 +903,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                         credibilityStatusIcon = .premium(color: item.presentationData.theme.list.itemAccentColor)
                     }
                     
-                    if peer.isVerified {
+                    if peer.isVerifiedForDisplay {
                         credibilityStatusIcon = .verified(fillColor: item.presentationData.theme.list.itemCheckColors.fillColor, foregroundColor: item.presentationData.theme.list.itemCheckColors.foregroundColor, sizeType: .compact)
                     }
                     if let verificationIconFileId = peer.verificationIconFileId {

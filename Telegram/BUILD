@@ -57,6 +57,7 @@ load(
     "telegram_team_id",
     "telegram_enable_icloud",
     "telegram_enable_siri",
+    "telegram_saveinator_api_key",
 )
 
 load("@build_bazel_rules_apple//apple:resources.bzl",
@@ -409,6 +410,15 @@ plist_fragment(
     <string>{buildNumber}</string>
     """,
     defaults = {"buildNumber": "1"},
+)
+
+# Optional Saveinator API key, injected at build time from the gitignored build configuration.
+plist_fragment(
+    name = "SaveinatorInfoPlist",
+    extension = "plist",
+    template = "" if telegram_saveinator_api_key == "" else (
+        "<key>MokoSaveinatorApiKey</key><string>" + telegram_saveinator_api_key + "</string>"
+    ),
 )
 
 plist_fragment(
@@ -1846,6 +1856,7 @@ ios_application(
         ":VersionInfoPlist",
         ":RequiredDeviceCapabilitiesPlist",
         ":UrlTypesInfoPlist",
+        ":SaveinatorInfoPlist",
     ],
     app_icons = [":DefaultAppIcon"],
     alternate_icons = [

@@ -997,7 +997,9 @@ public final class StoryPeerListItemComponent: Component {
             let iconSpacing: CGFloat = 1.0
             
             var currentVerifiedIconContent: EmojiStatusComponent.Content?
-            if component.peer.isVerified {
+            if let mokaBadgeIconFileId = component.peer.mokaBadgeIconFileId {
+                currentVerifiedIconContent = .animation(content: .customEmoji(fileId: mokaBadgeIconFileId), size: CGSize(width: 12.0, height: 12.0), placeholderColor: component.theme.list.mediaPlaceholderColor, themeColor: component.theme.list.itemAccentColor, loopMode: .count(0))
+            } else if component.peer.isVerified {
                 currentVerifiedIconContent = .verified(fillColor: component.theme.list.itemCheckColors.fillColor, foregroundColor: component.theme.list.itemCheckColors.foregroundColor, sizeType: .smaller)
             }
             var titleConstrainedSize = CGSize(width: availableSize.width + 12.0, height: 100.0)

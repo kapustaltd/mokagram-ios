@@ -1,7 +1,11 @@
 import Foundation
 import Postbox
+import MokoCore
 
 public let anonymousSavedMessagesId: Int64 = 2666000
+
+/// Posted when the mokaGram badge holder list changed: rows that draw a name icon lay themselves out again.
+public let mokaBadgesChangedNotificationName: Notification.Name = MokoBadges.changedNotification
 
 public extension Peer {
     var debugDisplayTitle: String {
@@ -338,9 +342,26 @@ public extension Peer {
         }
     }
     
+    /// The mokaGram badge icon (a custom emoji) of a developer or holder, nil for everyone else.
+    var mokaBadgeIconFileId: Int64? {
+        if let user = self as? TelegramUser {
+            return MokoBadges.iconFileId(userId: user.id.id._internalGetInt64Value(), username: user.username)
+        }
+        return nil
+    }
+
+    /// Telegram's own verified icon is drawn only when the mokaGram icon does not replace it: exactly one icon per peer.
+    var isVerifiedForDisplay: Bool {
+        return self.isVerified && self.mokaBadgeIconFileId == nil
+    }
+
     var verificationIconFileId: Int64? {
         switch self {
         case let user as TelegramUser:
+            // A mokaGram badge holder gets the mokaGram icon in place of any bot-verification icon.
+            if let badgeIcon = self.mokaBadgeIconFileId {
+                return badgeIcon
+            }
             return user.verificationIconFileId
         case let channel as TelegramChannel:
             return channel.verificationIconFileId
@@ -348,7 +369,7 @@ public extension Peer {
             return nil
         }
     }
-    
+
     var profileColor: PeerNameColor? {
         switch self {
         case let user as TelegramUser:

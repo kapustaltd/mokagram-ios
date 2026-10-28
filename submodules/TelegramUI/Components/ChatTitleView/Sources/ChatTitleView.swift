@@ -314,7 +314,7 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
                                         titleCredibilityIcon = .premium
                                     }
                                     
-                                    if peer.isVerified {
+                                    if peer.isVerifiedForDisplay {
                                         titleCredibilityIcon = .verified
                                     }
                                     if let verificationIconFileId = peer.verificationIconFileId {

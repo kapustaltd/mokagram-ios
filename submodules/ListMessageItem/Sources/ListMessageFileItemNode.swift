@@ -1093,7 +1093,22 @@ public final class ListMessageFileItemNode: ListMessageNode {
                                     updateIconImageSignal = .complete()
                                 }
                             case let .albumArt(file, albumArt):
-                                updateIconImageSignal = playerAlbumArt(engine: item.context.engine, fileReference: .message(message: MessageReference(message), media: file), albumArt: albumArt, thumbnail: true, overlayColor: UIColor(white: 0.0, alpha: 0.3), emptyColor: item.presentationData.theme.theme.list.itemAccentColor)
+                                // Same generated placeholder as the compact and expanded player when a track has no art.
+                                var coverTitle = ""
+                                var coverPerformer = ""
+                                for attribute in file.attributes {
+                                    if case let .Audio(_, _, title, performer, _) = attribute {
+                                        coverTitle = title ?? ""
+                                        coverPerformer = performer ?? ""
+                                        break
+                                    }
+                                }
+                                if message.id.namespace == Namespaces.Message.Local {
+                                    // mokaGram catalogue track: generated placeholder.
+                                    updateIconImageSignal = playerAlbumArt(engine: item.context.engine, fileReference: .message(message: MessageReference(message), media: file), albumArt: albumArt, thumbnail: true, overlayColor: UIColor(white: 0.0, alpha: 0.3), placeholderSeed: MusicCoverPlaceholder.seed(title: coverTitle, performer: coverPerformer))
+                                } else {
+                                    updateIconImageSignal = playerAlbumArt(engine: item.context.engine, fileReference: .message(message: MessageReference(message), media: file), albumArt: albumArt, thumbnail: true, overlayColor: UIColor(white: 0.0, alpha: 0.3), emptyColor: item.presentationData.theme.theme.list.itemAccentColor)
+                                }
                             case let .roundVideo(file):
                                 updateIconImageSignal = mediaGridMessageVideo(postbox: item.context.account.postbox, userLocation: .peer(message.id.peerId), videoReference: FileMediaReference.message(message: MessageReference(message), media: file), autoFetchFullSizeThumbnail: true, overlayColor: UIColor(white: 0.0, alpha: 0.3))
                         }

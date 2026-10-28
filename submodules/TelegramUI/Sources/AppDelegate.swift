@@ -2121,6 +2121,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         self.isActiveValue = true
         self.isActivePromise.set(true)
 
+        MokoBadges.refresh()
         self.resetBadge()
         
         self.maybeCheckForUpdates()

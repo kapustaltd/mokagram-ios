@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import Intents
 import TelegramPresentationData
+import MokoCore
 import TelegramUIPreferences
 import SwiftSignalKit
 import Postbox
@@ -166,6 +167,21 @@ final class AuthorizedApplicationContext {
         
         self.context = context
         
+        // mokaGram badges: when no https source answers, ask @mokagent through this account.
+        MokoBadges.setInlineFallback { [weak context] completion in
+            guard let context else {
+                completion(nil)
+                return
+            }
+            let _ = (context.engine.messages.mokaBadgesViaBot()
+            |> take(1)
+            |> timeout(30.0, queue: Queue.mainQueue(), alternate: .single(nil))
+            |> deliverOnMainQueue).start(next: { data in
+                completion(data)
+            })
+        }
+        MokoBadges.refresh(force: true)
+
         self.showCallsTab = showCallsTab
         
         self.notificationController = NotificationContainerController(context: context)

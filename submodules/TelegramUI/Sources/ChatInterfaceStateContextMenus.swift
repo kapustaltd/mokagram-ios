@@ -691,8 +691,23 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     
                     f(.default)
                 })))
+
+                if !message.text.isEmpty {
+                    let isRussianInterface = chatPresentationInterfaceState.strings.baseLanguageCode == "ru"
+                    actions.append(.action(ContextMenuActionItem(text: isRussianInterface ? "Копировать с автором" : "Copy with author", icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
+                    }, action: { _, f in
+                        let authorName = message.author.flatMap { EnginePeer($0).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: chatPresentationInterfaceState.nameDisplayOrder) } ?? ""
+                        let text = MokoMisc.copyWithAuthor(date: Date(timeIntervalSince1970: TimeInterval(message.timestamp)), author: authorName, text: message.text)
+                        storeMessageTextInPasteboard(text, entities: nil)
+                        Queue.mainQueue().after(0.2, {
+                            controllerInteraction.displayUndo(.copy(text: chatPresentationInterfaceState.strings.Conversation_MessageCopied))
+                        })
+                        f(.default)
+                    })))
+                }
             }
-            
+
             if let author = message.author, let addressName = author.addressName {
                 let link = "https://t.me/\(addressName)"
                 actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopyLink, icon: { theme in

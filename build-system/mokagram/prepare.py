@@ -65,6 +65,11 @@ def prepare():
         if not re.fullmatch(r'[1-9][0-9]*', api_id) or not re.fullmatch(r'[a-fA-F0-9]{32}', api_hash):
             raise SystemExit('Invalid Telegram API credentials')
         config.update(api_id=api_id, api_hash=api_hash)
+    saveinator_key = os.environ.get('MOKAGRAM_SAVEINATOR_API_KEY', '').strip()
+    if saveinator_key:
+        if not re.fullmatch(r'[A-Za-z0-9_-]{16,128}', saveinator_key):
+            raise SystemExit('Invalid MOKAGRAM_SAVEINATOR_API_KEY')
+        config['saveinator_api_key'] = saveinator_key
     base = Path('build-input/mokagram')
     certs = base / 'signing/certs'
     profiles = base / 'signing/profiles'

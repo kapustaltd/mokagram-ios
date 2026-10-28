@@ -76,6 +76,7 @@ import RichTextEditorMediaView
 import InstantPageUI
 import ChatRichTextEditorComposer
 import MokoCore
+import MokoSaveinatorUI
 
 final class VideoNavigationControllerDropContentItem: NavigationControllerDropContentItem {
     let itemNode: OverlayMediaItemNode
@@ -5022,7 +5023,63 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
     }
 
-    func sendCurrentMessage(silentPosting: Bool? = nil, scheduleTime: Int32? = nil, repeatPeriod: Int32? = nil, postpone: Bool = false, messageEffect: ChatSendMessageEffect? = nil, sendWithoutFormatting: Bool = false, completion: @escaping () -> Void = {}) {
+    /// mokaGram: a message that is only a link to a supported service offers to be sent as downloaded
+    /// media (Desktop `Saveinator::OfferSendDownload`). Returns true when the send was taken over.
+    private func offerSaveinatorDownload(state: ChatPresentationInterfaceState, silentPosting: Bool?, scheduleTime: Int32?, repeatPeriod: Int32?, postpone: Bool, messageEffect: ChatSendMessageEffect?, sendWithoutFormatting: Bool, completion: @escaping () -> Void) -> Bool {
+        switch self.chatLocation {
+        case .peer, .replyThread:
+            break
+        case .customChatContents:
+            return false
+        }
+        let interfaceState = state.interfaceState
+        guard let peerId = self.chatLocation.peerId, interfaceState.editMessage == nil, interfaceState.postSuggestionState == nil, interfaceState.forwardMessageIds == nil, state.slowmodeState == nil || scheduleTime != nil, !postpone else {
+            return false
+        }
+        let originalInputState = interfaceState.composeInputState
+        guard let link = MokoSaveinatorOffer.link(in: originalInputState.inputText.string) else {
+            return false
+        }
+        let replySubject = interfaceState.replyMessageSubject
+        let threadId = self.chatLocation.threadId
+        let context = self.context
+        MokoSaveinatorOffer.present(context: context, link: link, sendAsText: { [weak self] in
+            self?.sendCurrentMessage(silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, postpone: postpone, messageEffect: messageEffect, sendWithoutFormatting: sendWithoutFormatting, skipSaveinator: true, completion: completion)
+        }, download: { [weak self] choice in
+            guard let self else {
+                return
+            }
+            self.collapseInput()
+            self.controller?.updateChatPresentationInterfaceState(animated: true, interactive: false, { state in
+                return state.updatedInterfaceState { $0.withUpdatedReplyMessageSubject(nil).withUpdatedComposeInputState(ChatTextInputState(inputText: NSAttributedString(string: ""))).withUpdatedComposeDisableUrlPreviews([]) }
+            })
+            completion()
+            let destination = MokoSaveinatorDestination(peerId: peerId, threadId: threadId, replySubject: replySubject?.subjectModel, silent: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod)
+            MokoSaveinatorTransfer.start(context: context, link: link, choice: choice, destination: destination, send: { [weak self] messages in
+                guard let self else {
+                    return false
+                }
+                self.sendMessages(messages, silentPosting, scheduleTime, repeatPeriod, true, false)
+                return true
+            }, failed: { [weak self] in
+                self?.controller?.updateChatPresentationInterfaceState(animated: true, interactive: false, { state in
+                    guard state.interfaceState.composeInputState.inputText.length == 0 else {
+                        return state
+                    }
+                    return state.updatedInterfaceState { current in
+                        var result = current.withUpdatedComposeInputState(originalInputState)
+                        if current.replyMessageSubject == nil {
+                            result = result.withUpdatedReplyMessageSubject(replySubject)
+                        }
+                        return result
+                    }
+                })
+            })
+        })
+        return true
+    }
+
+    func sendCurrentMessage(silentPosting: Bool? = nil, scheduleTime: Int32? = nil, repeatPeriod: Int32? = nil, postpone: Bool = false, messageEffect: ChatSendMessageEffect? = nil, sendWithoutFormatting: Bool = false, skipSaveinator: Bool = false, completion: @escaping () -> Void = {}) {
         guard let textInputPanelNode = self.inputPanelNode as? ChatTextInputPanelNode else {
             return
         }
@@ -5235,6 +5292,9 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 })
                 return
             }
+        }
+        if !skipSaveinator, self.offerSaveinatorDownload(state: effectivePresentationInterfaceState, silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, postpone: postpone, messageEffect: messageEffect, sendWithoutFormatting: sendWithoutFormatting, completion: completion) {
+            return
         }
         self.historyNode.justSentTextMessage = true
         

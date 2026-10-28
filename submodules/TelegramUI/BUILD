@@ -68,6 +68,8 @@ swift_library(
         "//submodules/Moko/MokoMusic",
         "//submodules/Moko/MokoMusicUI",
         "//submodules/Moko/MokoSettingsUI",
+        "//submodules/Moko/MokoSaveinator",
+        "//submodules/Moko/MokoSaveinatorUI",
         "//third-party/recaptcha:RecaptchaEnterprise",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/SSignalKit/SSignalKit:SSignalKit",
