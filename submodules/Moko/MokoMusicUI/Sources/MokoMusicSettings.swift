@@ -6,7 +6,7 @@ import TelegramCore
 import MokoCore
 import MokoSettingsUI
 
-/// The music rows of the mokaGram settings page. Call once before the settings screen opens.
+/// The music rows of the mokaGram settings page. Music itself (search, For You, likes) lives in the player sheet. Call once before the settings screen opens.
 public enum MokoMusicSettings {
     private static var registered = false
 
@@ -15,9 +15,6 @@ public enum MokoMusicSettings {
             return
         }
         registered = true
-        MokoSettingsCustomRows.register(MokoSettingsCustomRow(page: .music, section: "Музыка", title: "Музыка", open: { context, controller in
-            controller.push(mokoMusicController(context: context, initialQuery: nil))
-        }))
         MokoSettingsCustomRows.register(MokoSettingsCustomRow(page: .music, section: "Плеер", title: "Очистить кэш музыки", open: { context, _ in
             let music = MokoMusicContext.shared
             let _ = (music.currentQueue |> take(1)).start(next: { queue in
