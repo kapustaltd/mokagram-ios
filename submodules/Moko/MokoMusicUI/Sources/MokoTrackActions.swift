@@ -56,18 +56,7 @@ public enum MokoTrackActions {
             controller?.push(selection)
         }))
         sheet.addAction(UIAlertAction(title: strings.moko("Добавить в профиль"), style: .default, handler: { _ in
-            toast(context, strings.moko("Добавляю в профиль…"))
-            let _ = (MokoTrackSending.addToProfile(context: context, track: track)
-            |> deliverOnMainQueue).start(error: { error in
-                switch error {
-                case let .download(error):
-                    toast(context, errorText(error, strings: strings))
-                case .notDelivered, .profile:
-                    toast(context, strings.moko("Не получилось добавить в профиль. Трек остался в «Избранном»."))
-                }
-            }, completed: {
-                toast(context, strings.moko("Добавлено в профиль"))
-            })
+            addToProfile(track: track, context: context)
         }))
         sheet.addAction(UIAlertAction(title: strings.moko("Сохранить в Файлы"), style: .default, handler: { _ in
             let _ = (music.downloader.download(track)
@@ -88,6 +77,23 @@ public enum MokoTrackActions {
         }
         sheet.addAction(UIAlertAction(title: strings.moko("Отмена"), style: .cancel))
         presentNative(context, sheet)
+    }
+
+    /// Uploads the track and adds it to the profile's music, with progress and failure toasts.
+    public static func addToProfile(track: MokoMusicTrack, context: AccountContext) {
+        let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
+        toast(context, strings.moko("Добавляю в профиль…"))
+        let _ = (MokoTrackSending.addToProfile(context: context, track: track)
+        |> deliverOnMainQueue).start(error: { error in
+            switch error {
+            case let .download(error):
+                toast(context, errorText(error, strings: strings))
+            case .notDelivered, .profile:
+                toast(context, strings.moko("Не получилось добавить в профиль. Трек остался в «Избранном»."))
+            }
+        }, completed: {
+            toast(context, strings.moko("Добавлено в профиль"))
+        })
     }
 
     /// Desktop's error wording for SoundCloud failures.

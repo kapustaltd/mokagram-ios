@@ -18,14 +18,18 @@ import MultilineTextComponent
 import GlassControls
 import PhotoResources
 import InstantPageUI
+import MokoCore
+import MokoMusic
+import MokoSettingsUI
+import MokoMusicUI
 
 final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestureRecognizerDelegate {
     let ready = Promise<Bool>()
     
     private let context: AccountContext
     
-    private let source: ChatHistoryListSource
-    private let chatLocation: ChatLocation
+    private var source: ChatHistoryListSource
+    private var chatLocation: ChatLocation
     private var presentationData: PresentationData
     private let type: MediaManagerPlayerType
     private let requestDismiss: () -> Void
@@ -62,10 +66,22 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
     private var replacementHistoryNode: ChatHistoryListNodeImpl?
     private var replacementHistoryNodeFloatingOffset: CGFloat?
     
-    private var currentAlbumArt: (FileMediaReference, SharedMediaPlaybackAlbumArt)?
-    private let albumArtBackground: UIVisualEffectView
-    private let albumArtNode = TransformImageNode()
-    
+    private enum PlayerTab: Int {
+        case fromChat
+        case search
+    }
+
+    private var selectedTab: PlayerTab = .fromChat
+    private let tabsControl = UISegmentedControl(items: [])
+    private let chatPickerButton = UIButton(type: .system)
+    private var searchPanel: MokoMusicSearchPanelView?
+    private let emptyChatLabel = UILabel()
+    /// Set once the user picked another chat: the rows are then that chat's own music, whatever
+    /// playlist the sheet was opened with.
+    private var isPickedChat = false
+    private var chatTitle: String?
+    private let chatTitleDisposable = MetaDisposable()
+
     private var saveMediaDisposable: MetaDisposable?
     
     private var validLayout: ContainerViewLayout?
@@ -381,10 +397,6 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         self.collapseNode.displaysAsynchronously = false
         self.collapseNode.setImage(generateCollapseIcon(theme: self.presentationData.theme), for: [])
         
-        self.albumArtBackground = UIVisualEffectView()
-        self.albumArtBackground.contentView.addSubview(self.albumArtNode.view)
-        self.albumArtNode.isUserInteractionEnabled = false
-        
         super.init()
         
         self.backgroundColor = nil
@@ -424,19 +436,6 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             if let strongSelf = self, let validLayout = strongSelf.validLayout {
                 strongSelf.containerLayoutUpdated(validLayout, transition: .animated(duration: 0.5, curve: .spring))
             }
-        }
-        
-        self.controlsNode.requestAlbumArtDisplay = { [weak self] fileReferenceAndAlbumArt in
-            guard let self, let layout = self.validLayout else {
-                return
-            }
-            self.currentAlbumArt = fileReferenceAndAlbumArt
-            
-            if let (fileReference, albumArt) = fileReferenceAndAlbumArt {
-                self.albumArtNode.setSignal(playerAlbumArt(engine: self.context.engine, fileReference: fileReference, albumArt: albumArt, thumbnail: false))
-            }
-            
-            self.containerLayoutUpdated(layout, transition: .animated(duration: 0.25, curve: .easeInOut))
         }
         
         self.controlsNode.requestCollapse = { [weak self] in
@@ -482,7 +481,12 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         
         self.controlsNode.requestSaveToProfile = { [weak self] file in
             if let self {
-                self.addToSavedMusic(file: file)
+                if let track = MokoMusicContext.shared.catalogueTrack(for: self.controlsNode.currentItemId) {
+                    // A catalogue track is a local file: it has to be uploaded before the profile can hold it.
+                    MokoTrackActions.addToProfile(track: track, context: self.context)
+                } else {
+                    self.addToSavedMusic(file: file)
+                }
             }
         }
         
@@ -512,11 +516,11 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         }
         
         openMessageImpl = { [weak self] id in
-            if let strongSelf = self, let mokoLocation = strongSelf.playlistLocation as? MokoMusicPlaylistLocation, id.namespace == Namespaces.Message.Local {
+            if let strongSelf = self, !strongSelf.isPickedChat, let mokoLocation = strongSelf.playlistLocation as? MokoMusicPlaylistLocation, id.namespace == Namespaces.Message.Local {
                 mokoLocation.jump(Int(id.id))
                 return false
             }
-            if let strongSelf = self, let instantPageLocation = strongSelf.playlistLocation as? InstantPagePlaylistLocation, instantPageLocation.messageId != nil, id.namespace == Namespaces.Message.Local {
+            if let strongSelf = self, !strongSelf.isPickedChat, let instantPageLocation = strongSelf.playlistLocation as? InstantPagePlaylistLocation, instantPageLocation.messageId != nil, id.namespace == Namespaces.Message.Local {
                 // Re-seed the SAME playlist at the tapped track. Letting openChatMessage build a
                 // PeerMessagesMediaPlaylist over these rows would be wrong twice: they are
                 // synthesized Local messages whose MessageReference cannot revalidate a stale file
@@ -526,7 +530,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             }
             if let strongSelf = self, strongSelf.isNodeLoaded, let message = strongSelf.historyNode.messageInCurrentHistoryView(id)?._asMessage() {
                 var playlistLocation: PeerMessagesPlaylistLocation?
-                if let location = strongSelf.playlistLocation as? PeerMessagesPlaylistLocation {
+                if !strongSelf.isPickedChat, let location = strongSelf.playlistLocation as? PeerMessagesPlaylistLocation {
                     if case let .custom(messages, canReorder, _, loadMore, hidePanel) = location {
                         playlistLocation = .custom(messages: messages, canReorder: canReorder, at: id, loadMore: loadMore, hidePanel: hidePanel)
                     } else if case let .savedMusic(context, _, canReorder) = location {
@@ -617,11 +621,12 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         )
         
         self.setupReordering()
-        
-        self.albumArtBackground.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.albumArtTapped(_:))))
+
+        self.setupTabs()
     }
-    
+
     deinit {
+        self.chatTitleDisposable.dispose()
         self.presentationDataDisposable?.dispose()
         self.replacementHistoryNodeReadyDisposable.dispose()
         self.dataDisposable?.dispose()
@@ -644,7 +649,12 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             if self.historyFrameTopOverlayNode.bounds.contains(self.view.convert(point, to: self.historyFrameTopOverlayNode.view)) {
                 return true
             }
-            if self.controlsNode.bounds.contains(self.view.convert(point, to: self.controlsNode.view)) {
+            let controlsPoint = self.view.convert(point, to: self.controlsNode.view)
+            if self.controlsNode.isExpanded && self.controlsNode.lyricsCardContains(controlsPoint) {
+                // The lyrics card scrolls by itself.
+                return false
+            }
+            if self.controlsNode.bounds.contains(controlsPoint) {
                 return true
             }
             return false
@@ -755,8 +765,12 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         self.collapseNode.setImage(generateCollapseIcon(theme: self.presentationData.theme), for: [])
         
         self.controlsNode.updatePresentationData(self.presentationData)
+
+        self.updateTabsTheme()
     }
     
+    private var panStartedInControls = false
+
     private func dismissAllTooltips() {
         guard let controller = self.getParentController() else {
             return
@@ -899,6 +913,197 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         return self.savedIds?.contains(fileReference.media.fileId.id)
     }
     
+    // MARK: - Tabs: From chat / Search
+
+    private func setupTabs() {
+        guard self.showsTabs else {
+            return
+        }
+        let strings = self.presentationData.strings
+        self.tabsControl.insertSegment(withTitle: strings.moko("Из чата"), at: 0, animated: false)
+        self.tabsControl.insertSegment(withTitle: strings.moko("Поиск"), at: 1, animated: false)
+        self.tabsControl.selectedSegmentIndex = PlayerTab.fromChat.rawValue
+        self.tabsControl.addTarget(self, action: #selector(self.tabChanged), for: .valueChanged)
+        self.historyFrameNode.view.addSubview(self.tabsControl)
+
+        self.chatPickerButton.contentHorizontalAlignment = .leading
+        self.chatPickerButton.addTarget(self, action: #selector(self.chatPickerPressed), for: .touchUpInside)
+        self.historyFrameNode.view.addSubview(self.chatPickerButton)
+
+        self.emptyChatLabel.font = UIFont.systemFont(ofSize: 15.0)
+        self.emptyChatLabel.textAlignment = .center
+        self.emptyChatLabel.numberOfLines = 0
+        self.emptyChatLabel.isHidden = true
+        self.emptyChatLabel.text = strings.moko("В этом чате нет музыки")
+        self.contentNode.view.insertSubview(self.emptyChatLabel, belowSubview: self.controlsNode.view)
+
+        self.updateTabsTheme()
+
+        if case let .peer(peerId) = self.chatLocation {
+            self.chatTitleDisposable.set((self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+            |> deliverOnMainQueue).start(next: { [weak self] peer in
+                guard let self, !self.isPickedChat, let peer else {
+                    return
+                }
+                self.chatTitle = self.displayTitle(for: peer)
+                self.updateChatPickerTitle()
+            }))
+        }
+        self.updateChatPickerTitle()
+
+        if self.playlistLocation is MokoMusicPlaylistLocation {
+            // A catalogue queue is playing: it is the Search tab's world.
+            self.selectTab(.search, animated: false)
+        }
+    }
+
+    private func displayTitle(for peer: EnginePeer) -> String {
+        if peer.id == self.context.account.peerId {
+            return self.presentationData.strings.DialogList_SavedMessages
+        }
+        return peer.compactDisplayTitle
+    }
+
+    private func updateTabsTheme() {
+        let theme = self.presentationData.theme
+        let style: UIUserInterfaceStyle = theme.overallDarkAppearance ? .dark : .light
+        self.tabsControl.overrideUserInterfaceStyle = style
+        self.searchPanel?.sectionControl.overrideUserInterfaceStyle = style
+        self.chatPickerButton.tintColor = theme.list.itemAccentColor
+        self.emptyChatLabel.textColor = theme.list.itemSecondaryTextColor
+        self.searchPanel?.updateTheme(theme)
+        self.searchPanel?.updateStrings(self.presentationData.strings)
+        self.emptyChatLabel.text = self.presentationData.strings.moko("В этом чате нет музыки")
+        self.updateChatPickerTitle()
+    }
+
+    private func updateChatPickerTitle() {
+        let strings = self.presentationData.strings
+        let title = self.chatTitle.map { strings.moko("Чат: %1", $0) } ?? strings.moko("Выбрать чат")
+        var configuration = UIButton.Configuration.plain()
+        configuration.title = title
+        configuration.image = UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11.0, weight: .semibold))
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = 6.0
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 4.0, leading: 4.0, bottom: 4.0, trailing: 4.0)
+        configuration.titleLineBreakMode = .byTruncatingTail
+        self.chatPickerButton.configuration = configuration
+    }
+
+    @objc private func tabChanged() {
+        if let tab = PlayerTab(rawValue: self.tabsControl.selectedSegmentIndex) {
+            self.selectTab(tab, animated: true)
+        }
+    }
+
+    private func selectTab(_ tab: PlayerTab, animated: Bool) {
+        guard self.showsTabs else {
+            return
+        }
+        self.selectedTab = tab
+        self.tabsControl.selectedSegmentIndex = tab.rawValue
+        if tab == .search {
+            let panel = self.ensureSearchPanel()
+            panel.activate()
+        } else {
+            self.view.endEditing(true)
+        }
+        if let layout = self.validLayout {
+            let transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.3, curve: .easeInOut) : .immediate
+            self.updateFloatingHeaderOffset(offset: self.floatingHeaderOffset ?? 0.0, transition: transition)
+            self.containerLayoutUpdated(layout, transition: transition)
+        }
+    }
+
+    private func ensureSearchPanel() -> MokoMusicSearchPanelView {
+        if let panel = self.searchPanel {
+            return panel
+        }
+        let panel = MokoMusicSearchPanelView(context: self.context, theme: self.presentationData.theme, strings: self.presentationData.strings)
+        panel.presentActions = { [weak self] track in
+            guard let self, let parent = self.getParentController() else {
+                return
+            }
+            let context = self.context
+            MokoTrackActions.present(track: track, context: context, from: parent, play: {
+                MokoMusicContext.shared.play([track], startIndex: 0, context: context)
+            })
+        }
+        panel.alpha = 0.0
+        self.contentNode.view.insertSubview(panel, belowSubview: self.controlsNode.view)
+        panel.sectionControl.alpha = 0.0
+        self.historyFrameNode.view.addSubview(panel.sectionControl)
+        self.searchPanel = panel
+        self.updateTabsTheme()
+        return panel
+    }
+
+    private func updateTabsLayout(layout: ContainerViewLayout, listTopInset: CGFloat, listNodeSize: CGSize, compactControlsHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        if self.showsTabs {
+            let inset: CGFloat = 16.0
+            let rowWidth = layout.size.width - inset * 2.0
+            self.tabsControl.frame = CGRect(x: inset, y: 24.0, width: rowWidth, height: 32.0)
+            let secondRow = CGRect(x: inset, y: 62.0, width: rowWidth, height: 34.0)
+            self.chatPickerButton.frame = secondRow
+            self.searchPanel?.sectionControl.frame = secondRow.insetBy(dx: 0.0, dy: 1.0)
+
+            if let panel = self.searchPanel {
+                let panelFrame = CGRect(origin: CGPoint(x: 0.0, y: listTopInset), size: CGSize(width: layout.size.width, height: max(0.0, listNodeSize.height)))
+                transition.updateFrame(view: panel, frame: panelFrame)
+                let keyboardOverlap = max(0.0, (layout.inputHeight ?? 0.0) - compactControlsHeight)
+                panel.updateLayout(size: panelFrame.size, bottomInset: keyboardOverlap + 8.0)
+            }
+            self.emptyChatLabel.frame = CGRect(x: 32.0, y: listTopInset + floor(listNodeSize.height * 0.35), width: layout.size.width - 64.0, height: 44.0)
+        }
+        self.updateTabVisibility(transition: transition)
+    }
+
+    /// Which layers are in view: the chat's list, the Search panel, or neither while the expanded
+    /// player covers the sheet.
+    private func updateTabVisibility(transition: ContainedViewLayoutTransition) {
+        let expanded = self.controlsNode.isExpanded
+        let isSearchTab = self.showsTabs && self.selectedTab == .search
+        let showsChatList = !expanded && !isSearchTab
+        transition.updateAlpha(node: self.historyNode, alpha: showsChatList ? 1.0 : 0.0)
+        self.historyNode.isUserInteractionEnabled = showsChatList
+        transition.updateAlpha(node: self.historyFrameNode, alpha: expanded ? 0.0 : 1.0)
+        transition.updateAlpha(node: self.historyBackgroundNode, alpha: expanded ? 0.0 : 1.0)
+        self.historyFrameNode.isUserInteractionEnabled = !expanded
+        if let panel = self.searchPanel {
+            let showsSearch = isSearchTab && !expanded
+            transition.updateAlpha(layer: panel.layer, alpha: showsSearch ? 1.0 : 0.0)
+            transition.updateAlpha(layer: panel.sectionControl.layer, alpha: showsSearch ? 1.0 : 0.0)
+            panel.isUserInteractionEnabled = showsSearch
+            panel.sectionControl.isUserInteractionEnabled = showsSearch
+        }
+        transition.updateAlpha(layer: self.chatPickerButton.layer, alpha: isSearchTab ? 0.0 : 1.0)
+        self.chatPickerButton.isUserInteractionEnabled = !isSearchTab
+        self.emptyChatLabel.isHidden = !(showsChatList && self.hasAnyHistoryMessages == false)
+    }
+
+    @objc private func chatPickerPressed() {
+        guard let parent = self.getParentController() else {
+            return
+        }
+        let strings = self.presentationData.strings
+        let controller = self.context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: self.context, filter: [], hasContactSelector: false, title: strings.moko("Музыка из чата")))
+        controller.peerSelected = { [weak self, weak controller] peer, _ in
+            controller?.dismiss()
+            self?.pickChat(peer)
+        }
+        parent.push(controller)
+    }
+
+    private func pickChat(_ peer: EnginePeer) {
+        self.isPickedChat = true
+        self.chatLocation = .peer(id: peer.id)
+        self.source = .default
+        self.chatTitle = self.displayTitle(for: peer)
+        self.updateChatPickerTitle()
+        self.hasAnyHistoryMessages = nil
+        self.transitionToUpdatedHistoryNode(atMessage: nil)
+    }
+
     private func updateHistoryContentOffset(_ offset: ListViewVisibleContentOffset, transition: ContainedViewLayoutTransition) {
         switch offset {
         case let .known(value):
@@ -942,10 +1147,20 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         transition.updateCornerRadius(node: self.containerContainingNode, cornerRadius: containerCornerRadius)
     }
     
+    /// The profile's own music keeps its titled header; every other playlist gets the tabs.
+    private var showsTabs: Bool {
+        if let playlistLocation = self.playlistLocation as? PeerMessagesPlaylistLocation, case .savedMusic = playlistLocation {
+            return false
+        }
+        return true
+    }
+
     private var effectiveHeaderHeight: CGFloat {
         var headerHeight: CGFloat = 38.0
         if let playlistLocation = self.playlistLocation as? PeerMessagesPlaylistLocation, case .savedMusic = playlistLocation {
             headerHeight = 78.0
+        } else if self.showsTabs {
+            headerHeight = 104.0
         }
         return headerHeight
     }
@@ -957,22 +1172,30 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         transition.updateFrameAsPositionAndBounds(node: self.containerContainingNode, frame: CGRect(origin: CGPoint(), size: layout.size))
         transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(), size: layout.size))
         
-        let controlsHeight = self.controlsNode.updateLayout(width: layout.size.width, leftInset: 0.0, rightInset: 0.0, bottomInset: layout.intrinsicInsets.bottom, maxHeight: layout.size.height, savedMusic: self.isSaved, transition: transition)
-        
+        let layoutTopInset: CGFloat = max(layout.statusBarHeight ?? 0.0, layout.safeInsets.top)
+
+        let controlsHeight = self.controlsNode.updateLayout(width: layout.size.width, leftInset: 0.0, rightInset: 0.0, topInset: layoutTopInset, bottomInset: layout.intrinsicInsets.bottom, maxHeight: layout.size.height, savedMusic: self.isSaved, transition: transition)
+        // The list is laid out above the compact player even while the expanded player covers it.
+        let compactControlsHeight: CGFloat
+        if self.controlsNode.isExpanded {
+            compactControlsHeight = OverlayAudioPlayerControlsNode.heightForLayout(width: layout.size.width, leftInset: 0.0, rightInset: 0.0, bottomInset: layout.intrinsicInsets.bottom, maxHeight: layout.size.height, isExpanded: false, savedMusic: self.isSaved)
+        } else {
+            compactControlsHeight = controlsHeight
+        }
+
         let controlsFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - controlsHeight), size: CGSize(width: layout.size.width, height: controlsHeight))
         let controlsTransition = self.controlsNode.frame.width > 0.0 ? transition : .immediate
         controlsTransition.updateFrame(node: self.controlsNode, frame: controlsFrame)
         
-        let layoutTopInset: CGFloat = max(layout.statusBarHeight ?? 0.0, layout.safeInsets.top)
         var insets = UIEdgeInsets()
         insets.left = 16.0
         insets.right = 16.0
         insets.bottom = 0.0
-                        
+
         let headerHeight = self.effectiveHeaderHeight
 
         let listTopInset = layoutTopInset + headerHeight
-        let listNodeSize = CGSize(width: layout.size.width, height: layout.size.height - listTopInset - controlsHeight)
+        let listNodeSize = CGSize(width: layout.size.width, height: layout.size.height - listTopInset - compactControlsHeight)
         
         insets.top = max(0.0, listNodeSize.height - floor(62.0 * 3.5))
         
@@ -1082,51 +1305,10 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         
         self.updateHistoryContentOffset(self.historyNode.visibleContentOffset(), transition: transition)
         
-        self.albumArtBackground.frame = CGRect(origin: .zero, size: layout.size)
-        
-        if let _ = self.currentAlbumArt {
-            var animateIn = false
-            if self.albumArtBackground.superview == nil {
-                self.view.addSubview(self.albumArtBackground)
-                animateIn = true
-            }
-            let albumArtSide = min(360.0, layout.size.width - 32.0)
-            let albumArtSize = CGSize(width: albumArtSide, height: albumArtSide)
-            self.albumArtNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - albumArtSize.width) / 2.0), y: floorToScreenPixels((layout.size.height - albumArtSize.height) / 2.0)), size: albumArtSize)
-            
-            let makeLargeAlbumArtLayout = self.albumArtNode.asyncLayout()
-            let applyLargeAlbumArt = makeLargeAlbumArtLayout(TransformImageArguments(corners: ImageCorners(radius: 4.0), imageSize: albumArtSize, boundingSize: albumArtSize, intrinsicInsets: UIEdgeInsets()))
-            applyLargeAlbumArt()
-            
-            if animateIn {
-                self.controlsNode.albumArtNode.alpha = 0.0
-                
-                let sourceFrame = self.controlsNode.albumArtNode.view.convert(self.controlsNode.albumArtNode.bounds, to: self.albumArtBackground.contentView)
-                ContainedViewLayoutTransition.animated(duration: 0.4, curve: .spring).animateFrame(node: self.albumArtNode, from: sourceFrame)
-                UIView.animate(withDuration: 0.2, animations: {
-                    self.albumArtBackground.effect = UIBlurEffect(style: self.presentationData.theme.overallDarkAppearance ? .dark : .light)
-                })
-            }
-        } else {
-            self.controlsNode.albumArtNode.alpha = 1.0
-            
-            if self.albumArtBackground.superview != nil {
-                let fadeTransition = ComponentTransition(transition)
-                fadeTransition.setBlur(layer: self.albumArtNode.layer, radius: 10.0)
-                fadeTransition.setAlpha(layer: self.albumArtNode.layer, alpha: 0.0)
-                
-                UIView.animate(withDuration: 0.2, animations: {
-                    self.albumArtBackground.effect = nil
-                }, completion: { _ in
-                    self.albumArtBackground.removeFromSuperview()
-                    ComponentTransition.immediate.setBlur(layer: self.albumArtNode.layer, radius: 0.0)
-                    ComponentTransition.immediate.setAlpha(layer: self.albumArtNode.layer, alpha: 1.0)
-                })
-            }
-        }
-        
+        self.updateTabsLayout(layout: layout, listTopInset: listTopInset, listNodeSize: listNodeSize, compactControlsHeight: compactControlsHeight, transition: transition)
+
         var layout = layout
-        layout.intrinsicInsets.bottom = controlsHeight + (self.historyNode.hasAnyMessages ? 0.0 : 8.0)
+        layout.intrinsicInsets.bottom = compactControlsHeight + (self.historyNode.hasAnyMessages ? 0.0 : 8.0)
         self.getParentController()?.presentationContext.containerLayoutUpdated(layout, transition: transition)
     }
     
@@ -1151,7 +1333,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         if !self.bounds.contains(point) {
             return nil
         }
-        if self.albumArtBackground.superview == nil &&  point.y < self.historyFrameNode.frame.minY {
+        if !self.controlsNode.isExpanded && point.y < self.historyFrameNode.frame.minY {
             return self.dimNode.view
         }
         return result
@@ -1163,13 +1345,6 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         }
     }
     
-    @objc func albumArtTapped(_ recognizer: UITapGestureRecognizer) {
-        if case .ended = recognizer.state, let layout = self.validLayout {
-            self.currentAlbumArt = nil
-            self.containerLayoutUpdated(layout, transition: .animated(duration: 0.3, curve: .easeInOut))
-        }
-    }
-            
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if let recognizer = gestureRecognizer as? UIPanGestureRecognizer {
             let location = recognizer.location(in: self.view)
@@ -1193,7 +1368,12 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         switch recognizer.state {
             case .began:
                 self.dismissAllTooltips()
+                self.panStartedInControls = self.controlsNode.bounds.contains(recognizer.location(in: self.controlsNode.view))
             case .changed:
+                if self.controlsNode.isExpanded {
+                    // Collapsing is decided when the gesture ends; the sheet does not follow the finger.
+                    return
+                }
                 let translation = recognizer.translation(in: self.contentNode.view)
                 var bounds = self.contentNode.bounds
                 bounds.origin.y = -translation.y
@@ -1206,6 +1386,17 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
                 self.contentNode.bounds = bounds
             case .ended:
                 let translation = recognizer.translation(in: self.contentNode.view)
+                let endVelocity = recognizer.velocity(in: self.contentNode.view)
+                if self.controlsNode.isExpanded {
+                    if translation.y > 60.0 || endVelocity.y > 500.0 {
+                        self.controlsNode.collapse()
+                    }
+                    return
+                }
+                if self.panStartedInControls && (translation.y < -40.0 || endVelocity.y < -500.0) {
+                    self.controlsNode.requestExpand()
+                    return
+                }
                 var bounds = self.contentNode.bounds
                 bounds.origin.y = -translation.y
                 if bounds.origin.y < 0.0 {
@@ -1242,7 +1433,11 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         self.floatingHeaderOffset = offset
         let previousHasAnyHistoryMessages = self.hasAnyHistoryMessages
         self.hasAnyHistoryMessages = self.historyNode.hasAnyMessages
-        self.controlsNode.hasPlainBackground = !self.historyNode.hasAnyMessages
+        // The Search tab has its own list: the frame stays at the top and never looks empty.
+        let isSearchTab = self.showsTabs && self.selectedTab == .search
+        let hasAnyMessages = isSearchTab ? true : self.historyNode.hasAnyMessages
+        let offset = isSearchTab ? 0.0 : offset
+        self.controlsNode.hasPlainBackground = !hasAnyMessages
         
         let sideInset: CGFloat = 16.0
         let headerHeight: CGFloat = self.effectiveHeaderHeight
@@ -1251,7 +1446,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
 
         let rawControlsOffset = offset + layoutTopInset
         var backgroundOffset = max(layoutTopInset, rawControlsOffset)
-        if !self.historyNode.hasAnyMessages {
+        if !hasAnyMessages {
             backgroundOffset += 25.0
         }
         
@@ -1264,7 +1459,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         
         transition.updateFrame(node: self.historyFrameNode, frame: frameFrame)
         self.historyFrameTopOverlayClipNode.frame = topOverlayFrame
-        self.historyFrameTopOverlayNode.frame = CGRect(origin: .zero, size: CGSize(width: topOverlayFrame.width, height: 78.0))
+        self.historyFrameTopOverlayNode.frame = CGRect(origin: .zero, size: CGSize(width: topOverlayFrame.width, height: max(78.0, headerHeight + 40.0)))
         self.historyFrameLeftOverlayNode.frame = leftOverlayFrame
         self.historyFrameRightOverlayNode.frame = rightOverlayFrame
         if let image = self.historyFrameTopMaskNode.image {
@@ -1284,10 +1479,11 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         
         if self.hasAnyHistoryMessages != previousHasAnyHistoryMessages {
             self.updatePresentationData(self.presentationData)
+            self.updateTabVisibility(transition: .immediate)
         }
     }
     
-    private func transitionToUpdatedHistoryNode(atMessage messageId: EngineMessage.Id) {
+    private func transitionToUpdatedHistoryNode(atMessage messageId: EngineMessage.Id?) {
         let tagMask: EngineMessage.Tags
         switch self.type {
             case .music:
@@ -1308,7 +1504,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             adMessagesContext: nil,
             tag: .tag(tagMask),
             source: self.source,
-            subject: .message(id: .id(messageId), highlight: ChatControllerSubject.MessageHighlight(quote: nil), timecode: nil, setupReply: false),
+            subject: messageId.flatMap { .message(id: .id($0), highlight: ChatControllerSubject.MessageHighlight(quote: nil), timecode: nil, setupReply: false) },
             controllerInteraction: self.controllerInteraction,
             selectedMessages: .single(nil),
             mode: .list(reversed: self.currentIsReversed, reverseGroups: !self.currentIsReversed, displayHeaders: .none, hintLinks: false, isGlobalSearch: self.isGlobalSearch, isMusicPlaylist: true),
@@ -1455,6 +1651,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             
             self.replacementHistoryNodeFloatingOffset = nil
             self.updateHistoryContentOffset(self.historyNode.visibleContentOffset(), transition: .immediate)
+            self.updateTabVisibility(transition: .immediate)
         }
     }
     

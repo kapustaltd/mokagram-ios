@@ -65,7 +65,9 @@ swift_library(
     ],
     deps = [
         "//submodules/Moko/MokoCore",
+        "//submodules/Moko/MokoMusic",
         "//submodules/Moko/MokoMusicUI",
+        "//submodules/Moko/MokoSettingsUI",
         "//third-party/recaptcha:RecaptchaEnterprise",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/SSignalKit/SSignalKit:SSignalKit",

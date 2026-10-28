@@ -24,7 +24,9 @@ import BundleIconComponent
 import ButtonComponent
 import Markdown
 import TextFormat
+import MusicAlbumArtResources
 import MokoCore
+import MokoMusic
 import MokoMusicUI
 
 private func normalizeValue(_ value: CGFloat) -> CGFloat {
@@ -113,7 +115,7 @@ private func timestampLabelWidthForDuration(_ timestamp: Double) -> CGFloat {
 private let titleFont = Font.semibold(17.0)
 private let descriptionFont = Font.regular(15.0)
 
-private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, presentationData: PresentationData) -> (NSAttributedString?, NSAttributedString?, Bool, NSAttributedString?) {
+private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, presentationData: PresentationData, primaryColor: UIColor? = nil, secondaryColor: UIColor? = nil) -> (NSAttributedString?, NSAttributedString?, Bool, NSAttributedString?) {
     var titleString: NSAttributedString?
     var descriptionString: NSAttributedString?
     var hasArtist = false
@@ -133,8 +135,8 @@ private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, pres
                 subtitleText = ""
         }
         
-        titleString = NSAttributedString(string: titleText, font: titleFont, textColor: presentationData.theme.list.itemPrimaryTextColor)
-        descriptionString = NSAttributedString(string: subtitleText, font: descriptionFont, textColor: presentationData.theme.list.itemSecondaryTextColor)
+        titleString = NSAttributedString(string: titleText, font: titleFont, textColor: primaryColor ?? presentationData.theme.list.itemPrimaryTextColor)
+        descriptionString = NSAttributedString(string: subtitleText, font: descriptionFont, textColor: secondaryColor ?? presentationData.theme.list.itemSecondaryTextColor)
     }
     
     return (titleString, descriptionString, hasArtist, captionString)
@@ -192,9 +194,10 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         }
     }
         
+    /// The Spotify-like layout: large cover, background tinted from the cover, the lyrics card. Swiping the
+    /// compact player up or tapping its cover turns it on; swiping down or the chevron turns it off.
     var isExpanded = false
     var updateIsExpanded: (() -> Void)?
-    var requestAlbumArtDisplay: (((FileMediaReference, SharedMediaPlaybackAlbumArt)?) -> Void)?
     
     var requestCollapse: (() -> Void)?
     var requestShare: ((ShareControllerSubject) -> Void)?
@@ -214,6 +217,20 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
     private(set) var currentItemId: SharedMediaPlaylistItemId?
     private var displayData: SharedMediaPlaybackDisplayData?
     private var currentAlbumArtInitialized = false
+    private var appliedArtExpanded: Bool?
+    private var appliedExpanded = false
+
+    private let expandedBackgroundNode = ASDisplayNode()
+    private let expandedGradientLayer = CAGradientLayer()
+    private let collapseExpandedButton = UIButton(type: .system)
+    private let likeButton = UIButton(type: .system)
+    private let moreButton = UIButton(type: .system)
+    private var lyricsCard: MokoLyricsCardView?
+    private let coverDisposable = MetaDisposable()
+    private var libraryDisposable: Disposable?
+    private var expandedTint = MokoCoverTint.fallback
+    /// The catalogue (SoundCloud) track that plays now; like and the track actions are offered for it only.
+    private var currentCatalogueTrack: MokoMusicTrack?
     private var currentAlbumArt: SharedMediaPlaybackAlbumArt?
     private(set) var currentFileReference: FileMediaReference?
     private var statusDisposable: Disposable?
@@ -232,7 +249,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
     private var currentDuration: Double = 0.0
     private var currentPosition: Double = 0.0
     
-    private var validLayout: (width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, maxHeight: CGFloat, savedMusic: Bool?)?
+    private var validLayout: (width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, topInset: CGFloat, bottomInset: CGFloat, maxHeight: CGFloat, savedMusic: Bool?)?
     
     init(account: Account, engine: TelegramEngine, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationData: PresentationData, status: Signal<(Account, SharedMediaPlayerItemPlaybackStateOrLoading, MediaManagerPlayerType)?, NoError>, chatLocation: ChatLocation, source: ChatHistoryListSource, lottieSettings: LottieRenderingSettings) {
         self.accountManager = accountManager
@@ -311,7 +328,12 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         super.init()
         
         self.addSubnode(self.backgroundNode)
-                
+
+        self.expandedBackgroundNode.alpha = 0.0
+        self.expandedBackgroundNode.isUserInteractionEnabled = false
+        self.expandedBackgroundNode.clipsToBounds = true
+        self.addSubnode(self.expandedBackgroundNode)
+
         self.addSubnode(self.albumArtNode)
         //self.addSubnode(self.titleNode)
         self.addSubnode(self.descriptionNode)
@@ -470,10 +492,13 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
                 strongSelf.updateLabels(transition: .immediate)
             }
             
+            strongSelf.updateCatalogueState()
+
             if let (_, valueOrLoading, _) = value, case let .state(value) = valueOrLoading, let source = value.item.playbackData?.source {
                 switch source {
                 case let .telegramFile(_, isCopyProtected, _):
-                    strongSelf.shareNode.isHidden = isCopyProtected || forceCopyProtected
+                    // A catalogue track is sent and added through its own actions, not Telegram's share sheet.
+                    strongSelf.shareNode.isHidden = isCopyProtected || forceCopyProtected || strongSelf.currentCatalogueTrack != nil
                 }
             }
             
@@ -568,11 +593,38 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
     deinit {
         self.statusDisposable?.dispose()
         self.chapterDisposable?.dispose()
+        self.coverDisposable.dispose()
+        self.libraryDisposable?.dispose()
     }
     
     override func didLoad() {
         super.didLoad()
-        
+
+        self.expandedGradientLayer.colors = [self.expandedTint.cgColor, MokoCoverTint.bottomColor(for: self.expandedTint).cgColor]
+        self.expandedBackgroundNode.layer.addSublayer(self.expandedGradientLayer)
+
+        let symbolConfiguration = UIImage.SymbolConfiguration(pointSize: 20.0, weight: .medium)
+        self.collapseExpandedButton.setImage(UIImage(systemName: "chevron.down", withConfiguration: symbolConfiguration), for: .normal)
+        self.collapseExpandedButton.addTarget(self, action: #selector(self.collapseExpandedPressed), for: .touchUpInside)
+        self.collapseExpandedButton.alpha = 0.0
+        self.collapseExpandedButton.isHidden = true
+        self.view.addSubview(self.collapseExpandedButton)
+
+        self.moreButton.setImage(UIImage(systemName: "ellipsis", withConfiguration: symbolConfiguration), for: .normal)
+        self.moreButton.addTarget(self, action: #selector(self.morePressed), for: .touchUpInside)
+        self.moreButton.isHidden = true
+        self.view.addSubview(self.moreButton)
+
+        self.likeButton.addTarget(self, action: #selector(self.likePressed), for: .touchUpInside)
+        self.likeButton.isHidden = true
+        self.view.addSubview(self.likeButton)
+
+        self.libraryDisposable = (MokoMusicContext.shared.library.changed
+        |> deliverOnMainQueue).start(next: { [weak self] _ in
+            self?.updateCatalogueState()
+        })
+        self.applyColors()
+
         self.albumArtNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.albumArtTap(_:))))
         // mokaGram: a long press on the cover opens the lyrics of the playing track.
         self.albumArtNode.view.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(self.albumArtLongPress(_:))))
@@ -671,17 +723,40 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         }
         self.presentationData = presentationData
         
-        self.playPauseButton.circleColor = presentationData.theme.list.controlSecondaryColor.withAlphaComponent(0.35)
-        self.backwardButton.circleColor = presentationData.theme.list.controlSecondaryColor.withAlphaComponent(0.35)
-        self.forwardButton.circleColor = presentationData.theme.list.controlSecondaryColor.withAlphaComponent(0.35)
-        
         self.backgroundNode.image = self.hasPlainBackground ? generatePlainBackground(theme: presentationData.theme) : generateBackground(theme: presentationData.theme)
-        self.shareNode.setImage(generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Share"), color: presentationData.theme.list.itemPrimaryTextColor), for: [])
-        self.scrubberNode.updateColors(backgroundColor: presentationData.theme.list.controlSecondaryColor.withMultipliedAlpha(0.5), foregroundColor: presentationData.theme.list.itemPrimaryTextColor)
-        self.leftDurationLabel.textColor = presentationData.theme.list.itemSecondaryTextColor
-        self.rightDurationLabel.textColor = presentationData.theme.list.itemSecondaryTextColor
-        self.backwardButton.icon = generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Previous"), color: presentationData.theme.list.itemPrimaryTextColor)
-        self.forwardButton.icon = generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Next"), color: presentationData.theme.list.itemPrimaryTextColor)
+        self.applyColors()
+        self.separatorNode.backgroundColor = presentationData.theme.list.itemPlainSeparatorColor
+
+        self.updateLabels(transition: .immediate)
+    }
+
+    // The expanded player is drawn on the tinted cover colour, so it is always light-on-dark, whatever the theme.
+    private var primaryColor: UIColor {
+        return self.isExpanded ? .white : self.presentationData.theme.list.itemPrimaryTextColor
+    }
+
+    private var secondaryColor: UIColor {
+        return self.isExpanded ? UIColor(white: 1.0, alpha: 0.65) : self.presentationData.theme.list.itemSecondaryTextColor
+    }
+
+    private var accentColor: UIColor {
+        return self.isExpanded ? .white : self.presentationData.theme.list.itemAccentColor
+    }
+
+    private func applyColors() {
+        let theme = self.presentationData.theme
+        let controlFill = self.isExpanded ? UIColor(white: 1.0, alpha: 0.16) : theme.list.controlSecondaryColor.withAlphaComponent(0.35)
+        self.playPauseButton.circleColor = controlFill
+        self.backwardButton.circleColor = controlFill
+        self.forwardButton.circleColor = controlFill
+
+        self.shareNode.setImage(generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Share"), color: self.primaryColor), for: [])
+        let trackColor = self.isExpanded ? UIColor(white: 1.0, alpha: 0.25) : theme.list.controlSecondaryColor.withMultipliedAlpha(0.5)
+        self.scrubberNode.updateColors(backgroundColor: trackColor, foregroundColor: self.primaryColor)
+        self.leftDurationLabel.textColor = self.secondaryColor
+        self.rightDurationLabel.textColor = self.secondaryColor
+        self.backwardButton.icon = generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Previous"), color: self.primaryColor)
+        self.forwardButton.icon = generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Next"), color: self.primaryColor)
         if let isPaused = self.currentIsPaused {
             self.updatePlayPauseButton(paused: isPaused, animated: false)
         }
@@ -694,59 +769,159 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         if let rate = self.currentRate {
             self.updateRateButton(rate)
         }
-        self.separatorNode.backgroundColor = presentationData.theme.list.itemPlainSeparatorColor
-        
-        self.updateLabels(transition: .immediate)
+        self.collapseExpandedButton.tintColor = self.primaryColor
+        self.moreButton.tintColor = self.primaryColor
+        self.updateCatalogueState()
+    }
+
+    private func updateCatalogueState() {
+        let track = MokoMusicContext.shared.catalogueTrack(for: self.currentItemId)
+        let changed = track?.id != self.currentCatalogueTrack?.id
+        self.currentCatalogueTrack = track
+        self.likeButton.isHidden = track == nil
+        self.moreButton.isHidden = track == nil
+        if let track {
+            let liked = MokoMusicContext.shared.library.isLiked(track.id)
+            self.likeButton.setImage(UIImage(systemName: liked ? "heart.fill" : "heart", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22.0, weight: .regular)), for: .normal)
+            self.likeButton.tintColor = liked ? self.presentationData.theme.list.itemAccentColor : self.primaryColor
+            self.likeButton.accessibilityLabel = liked ? "Unlike" : "Like"
+        }
+        if changed && self.validLayout != nil {
+            self.requestLayout(transition: .immediate)
+        }
+    }
+
+    @objc private func likePressed() {
+        guard let track = self.currentCatalogueTrack else {
+            return
+        }
+        let library = MokoMusicContext.shared.library
+        library.setLiked(track, !library.isLiked(track.id))
+    }
+
+    @objc private func morePressed() {
+        guard let track = self.currentCatalogueTrack, let controller = self.getParentController(), let context = self.lyricsContext?() else {
+            return
+        }
+        MokoTrackActions.present(track: track, context: context, from: controller, play: nil)
+    }
+
+    @objc private func collapseExpandedPressed() {
+        self.collapse()
+    }
+
+    func requestExpand() {
+        guard !self.isExpanded else {
+            return
+        }
+        if let supernode = self.supernode, supernode.bounds.width > supernode.bounds.height {
+            return
+        }
+        self.isExpanded = true
+        self.updateIsExpanded?()
+    }
+
+    func lyricsCardContains(_ point: CGPoint) -> Bool {
+        guard let card = self.lyricsCard, !card.isHidden else {
+            return false
+        }
+        return card.frame.contains(point)
+    }
+
+    /// Where the expanded layout puts the cover, and the origin that the title / scrubber / buttons hang from.
+    private func expandedGeometry(width: CGFloat, topInset: CGFloat, bottomInset: CGFloat, maxHeight: CGFloat) -> (cover: CGRect, infoOrigin: CGFloat) {
+        let available = maxHeight - topInset - bottomInset
+        let hasLyrics = MokoSettings.bool("lyrics.enabled", accountId: 0)
+        let side = max(140.0, min(width - 48.0, floor(available * (hasLyrics ? 0.36 : 0.5))))
+        let cover = CGRect(origin: CGPoint(x: floor((width - side) / 2.0), y: topInset + 56.0), size: CGSize(width: side, height: side))
+        return (cover, cover.maxY + 20.0)
+    }
+
+    private func updateExpandedTint(seed: String) {
+        guard self.isExpanded else {
+            return
+        }
+        let signal = playerAlbumArt(engine: self.engine, fileReference: self.currentFileReference, albumArt: self.currentAlbumArt, thumbnail: true, placeholderSeed: seed)
+        |> map { generator -> UIImage? in
+            let size = CGSize(width: 48.0, height: 48.0)
+            return generator(TransformImageArguments(corners: ImageCorners(), imageSize: size, boundingSize: size, intrinsicInsets: UIEdgeInsets()))?.generateImage()
+        }
+        self.coverDisposable.set((signal |> deliverOnMainQueue).start(next: { [weak self] image in
+            guard let self, let image else {
+                return
+            }
+            let tint = MokoCoverTint.color(for: image)
+            self.expandedTint = tint
+            let colors = [tint.cgColor, MokoCoverTint.bottomColor(for: tint).cgColor]
+            let animation = CABasicAnimation(keyPath: "colors")
+            animation.fromValue = self.expandedGradientLayer.colors
+            animation.toValue = colors
+            animation.duration = 0.35
+            self.expandedGradientLayer.colors = colors
+            self.expandedGradientLayer.add(animation, forKey: "colors")
+        }))
     }
     
     private func updateLabels(transition: ContainedViewLayoutTransition) {
-        guard let (width, leftInset, rightInset, _, _, _) = self.validLayout else {
+        guard let (width, leftInset, rightInset, topInset, bottomInset, maxHeight, _) = self.validLayout else {
             return
         }
-        
+
         let sideInset: CGFloat = 20.0
-        
+
         let infoLabelsLeftInset: CGFloat = 53.0
-        let infoLabelsRightInset: CGFloat = 32.0
-        
-        let infoVerticalOrigin: CGFloat = 21.0
-        
-        let (titleString, descriptionString, hasArtist, caption) = stringsForDisplayData(self.displayData, presentationData: self.presentationData)
+        // A catalogue track has two buttons (actions, like) where another track has the share button.
+        let infoLabelsRightInset: CGFloat = 32.0 + (self.currentCatalogueTrack != nil ? 44.0 : 0.0)
+
+        let infoVerticalOrigin: CGFloat
+        let titleX: CGFloat
+        let titleWidth: CGFloat
+        if self.isExpanded {
+            infoVerticalOrigin = self.expandedGeometry(width: width, topInset: topInset, bottomInset: bottomInset, maxHeight: maxHeight).infoOrigin
+            titleX = 24.0
+            titleWidth = width - 48.0 - (self.currentCatalogueTrack != nil ? 96.0 : 52.0)
+        } else {
+            infoVerticalOrigin = 21.0
+            titleX = leftInset + sideInset + infoLabelsLeftInset
+            titleWidth = width - sideInset * 2.0 - leftInset - rightInset - infoLabelsLeftInset - infoLabelsRightInset
+        }
+
+        let (titleString, descriptionString, hasArtist, caption) = stringsForDisplayData(self.displayData, presentationData: self.presentationData, primaryColor: self.primaryColor, secondaryColor: self.secondaryColor)
         
         if self.previousCaption?.string != caption?.string {
             self.previousCaption = caption
             let chapters = caption.flatMap { parseMediaPlayerChapters($0) } ?? []
             self.chaptersPromise.set(chapters)
-            self.scrubberNode.updateContent(.standard(lineHeight: 7.0, lineCap: .round, scrubberHandle: .none, backgroundColor: self.presentationData.theme.list.controlSecondaryColor.withMultipliedAlpha(0.5), foregroundColor: self.presentationData.theme.list.itemPrimaryTextColor, bufferingColor: self.presentationData.theme.list.itemPrimaryTextColor.withAlphaComponent(0.4), chapters: chapters))
+            self.scrubberNode.updateContent(.standard(lineHeight: 7.0, lineCap: .round, scrubberHandle: .none, backgroundColor: self.isExpanded ? UIColor(white: 1.0, alpha: 0.25) : self.presentationData.theme.list.controlSecondaryColor.withMultipliedAlpha(0.5), foregroundColor: self.primaryColor, bufferingColor: self.primaryColor.withAlphaComponent(0.4), chapters: chapters))
         }
         
         self.artistButton.isUserInteractionEnabled = hasArtist
         
         let makeTitleLayout = TextNode.asyncLayout(self.titleNode)
-        let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: width - sideInset * 2.0 - leftInset - rightInset - infoLabelsLeftInset - infoLabelsRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .left, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
-        
+        let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: titleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .left, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
+
         let titleSize = self.title.update(
             transition: .immediate,
             component: AnyComponent(
                 MarqueeComponent(attributedText: titleString ?? NSAttributedString())
             ),
             environment: {},
-            containerSize: CGSize(width: width - sideInset * 2.0 - leftInset - rightInset - infoLabelsLeftInset - infoLabelsRightInset, height: CGFloat.greatestFiniteMagnitude)
+            containerSize: CGSize(width: titleWidth, height: CGFloat.greatestFiniteMagnitude)
         )
         if let titleView = self.title.view {
             if titleView.superview == nil {
                 self.view.addSubview(titleView)
             }
-            transition.updateFrame(view: titleView, frame: CGRect(origin: CGPoint(x: self.isExpanded ? floor((width - titleSize.width) / 2.0) : (leftInset + sideInset + infoLabelsLeftInset), y: infoVerticalOrigin), size: titleSize))
+            transition.updateFrame(view: titleView, frame: CGRect(origin: CGPoint(x: titleX, y: infoVerticalOrigin), size: titleSize))
         }
         
         let makeDescriptionLayout = TextNode.asyncLayout(self.descriptionNode)
-        let (descriptionLayout, descriptionApply) = makeDescriptionLayout(TextNodeLayoutArguments(attributedString: descriptionString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: width - sideInset * 2.0 - leftInset - rightInset - infoLabelsLeftInset - infoLabelsRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .left, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
-        
-        transition.updateFrame(node: self.titleNode, frame: CGRect(origin: CGPoint(x: self.isExpanded ? floor((width - titleLayout.size.width) / 2.0) : (leftInset + sideInset + infoLabelsLeftInset), y: infoVerticalOrigin + 1.0), size: titleLayout.size))
+        let (descriptionLayout, descriptionApply) = makeDescriptionLayout(TextNodeLayoutArguments(attributedString: descriptionString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: titleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .left, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
+
+        transition.updateFrame(node: self.titleNode, frame: CGRect(origin: CGPoint(x: titleX, y: infoVerticalOrigin + 1.0), size: titleLayout.size))
         let _ = titleApply()
         
-        let descriptionFrame = CGRect(origin: CGPoint(x: self.isExpanded ? floor((width - descriptionLayout.size.width) / 2.0) : (leftInset + sideInset + infoLabelsLeftInset), y: infoVerticalOrigin + 24.0), size: descriptionLayout.size)
+        let descriptionFrame = CGRect(origin: CGPoint(x: titleX, y: infoVerticalOrigin + 24.0), size: descriptionLayout.size)
         transition.updateFrame(node: self.descriptionNode, frame: descriptionFrame)
         let _ = descriptionApply()
         
@@ -761,11 +936,17 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
                     break
             }
         }
-        if self.currentAlbumArt != albumArt || !self.currentAlbumArtInitialized {
+        var coverSeed = ""
+        if let displayData = self.displayData, case let .music(title, performer, _, _, _) = displayData {
+            coverSeed = MusicCoverPlaceholder.seed(title: title ?? "", performer: performer ?? "")
+        }
+        if self.currentAlbumArt != albumArt || !self.currentAlbumArtInitialized || self.appliedArtExpanded != self.isExpanded {
             self.currentAlbumArtInitialized = true
+            self.appliedArtExpanded = self.isExpanded
             self.currentAlbumArt = albumArt
-            self.albumArtNode.setSignal(playerAlbumArt(engine: self.engine, fileReference: self.currentFileReference, albumArt: albumArt, thumbnail: true))
-            self.requestAlbumArtDisplay?(nil)
+            // One placeholder for every track without a cover, the same one the Search rows draw.
+            self.albumArtNode.setSignal(playerAlbumArt(engine: self.engine, fileReference: self.currentFileReference, albumArt: albumArt, thumbnail: !self.isExpanded, placeholderSeed: coverSeed))
+            self.updateExpandedTint(seed: coverSeed)
         }
     }
     
@@ -810,11 +991,11 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
     static let basePanelHeight: CGFloat = 190.0
     
     static func heightForLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, maxHeight: CGFloat, isExpanded: Bool, savedMusic: Bool?) -> CGFloat {
-        var panelHeight: CGFloat = OverlayAudioPlayerControlsNode.basePanelHeight
         if isExpanded {
-            let sideInset: CGFloat = 20.0
-            panelHeight += width - leftInset - rightInset - sideInset * 2.0 + 24.0
+            // The expanded player covers the whole sheet.
+            return maxHeight
         }
+        let panelHeight: CGFloat = OverlayAudioPlayerControlsNode.basePanelHeight
         var height = min(panelHeight, maxHeight)
         if let _ = savedMusic {
             height += 52.0
@@ -830,12 +1011,16 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         guard let layout = self.validLayout else {
             return
         }
-        let _ = self.updateLayout(width: layout.width, leftInset: layout.leftInset, rightInset: layout.rightInset, bottomInset: layout.bottomInset, maxHeight: layout.maxHeight, savedMusic: layout.savedMusic, transition: transition)
+        let _ = self.updateLayout(width: layout.width, leftInset: layout.leftInset, rightInset: layout.rightInset, topInset: layout.topInset, bottomInset: layout.bottomInset, maxHeight: layout.maxHeight, savedMusic: layout.savedMusic, transition: transition)
     }
     
-    func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, maxHeight: CGFloat, savedMusic: Bool?, transition: ContainedViewLayoutTransition) -> CGFloat {
+    func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, topInset: CGFloat, bottomInset: CGFloat, maxHeight: CGFloat, savedMusic: Bool?, transition: ContainedViewLayoutTransition) -> CGFloat {
         let previousWidth = self.validLayout?.width
-        self.validLayout = (width, leftInset, rightInset, bottomInset, maxHeight, savedMusic)
+        self.validLayout = (width, leftInset, rightInset, topInset, bottomInset, maxHeight, savedMusic)
+        if self.appliedExpanded != self.isExpanded {
+            self.appliedExpanded = self.isExpanded
+            self.applyColors()
+        }
     
         var transition = transition
         if previousWidth == nil || previousWidth?.isZero == true {
@@ -847,21 +1032,39 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: panelHeight), size: CGSize(width: width, height: UIScreenPixel)))
                 
-        let sideInset: CGFloat = 16.0
+        let isExpanded = self.isExpanded
+        let geometry = self.expandedGeometry(width: width, topInset: topInset, bottomInset: bottomInset, maxHeight: maxHeight)
+
+        let sideInset: CGFloat = isExpanded ? 24.0 : 16.0
         let sideButtonsInset: CGFloat = sideInset + 60.0
-        
-        let infoVerticalOrigin: CGFloat = 21.0
-        
+
+        let infoVerticalOrigin: CGFloat = isExpanded ? geometry.infoOrigin : 21.0
+
         self.updateLabels(transition: transition)
-        
-        transition.updateFrame(node: self.shareNode, frame: CGRect(origin: CGPoint(x: width - rightInset - sideInset - 34.0, y: infoVerticalOrigin), size: CGSize(width: 42.0, height: 42.0)))
-        
-        let albumArtSize = CGSize(width: 46.0, height: 46.0)
+
+        let shareFrame = CGRect(origin: CGPoint(x: width - rightInset - sideInset - 34.0, y: infoVerticalOrigin), size: CGSize(width: 42.0, height: 42.0))
+        transition.updateFrame(node: self.shareNode, frame: shareFrame)
+        transition.updateFrame(view: self.likeButton, frame: shareFrame)
+        transition.updateFrame(view: self.moreButton, frame: shareFrame.offsetBy(dx: -44.0, dy: 0.0))
+        transition.updateFrame(view: self.collapseExpandedButton, frame: CGRect(origin: CGPoint(x: 12.0, y: topInset + 4.0), size: CGSize(width: 44.0, height: 44.0)))
+        transition.updateAlpha(layer: self.collapseExpandedButton.layer, alpha: isExpanded ? 1.0 : 0.0)
+        self.collapseExpandedButton.isHidden = !isExpanded
+
+        let albumArtSize = isExpanded ? geometry.cover.size : CGSize(width: 46.0, height: 46.0)
         let makeAlbumArtLayout = self.albumArtNode.asyncLayout()
-        let applyAlbumArt = makeAlbumArtLayout(TransformImageArguments(corners: ImageCorners(radius: 10.0), imageSize: albumArtSize, boundingSize: albumArtSize, intrinsicInsets: UIEdgeInsets()))
+        let applyAlbumArt = makeAlbumArtLayout(TransformImageArguments(corners: ImageCorners(radius: isExpanded ? 16.0 : 10.0), imageSize: albumArtSize, boundingSize: albumArtSize, intrinsicInsets: UIEdgeInsets()))
         applyAlbumArt()
-        let albumArtFrame = CGRect(origin: CGPoint(x: leftInset + sideInset, y: infoVerticalOrigin - 3.0), size: albumArtSize)
+        let albumArtFrame = isExpanded ? geometry.cover : CGRect(origin: CGPoint(x: leftInset + sideInset, y: infoVerticalOrigin - 3.0), size: albumArtSize)
         transition.updateFrame(node: self.albumArtNode, frame: albumArtFrame)
+
+        transition.updateAlpha(node: self.backgroundNode, alpha: isExpanded ? 0.0 : 1.0)
+        self.expandedBackgroundNode.isUserInteractionEnabled = isExpanded
+        transition.updateFrame(node: self.expandedBackgroundNode, frame: CGRect(origin: CGPoint(), size: CGSize(width: width, height: finalPanelHeight)))
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        self.expandedGradientLayer.frame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: finalPanelHeight))
+        CATransaction.commit()
+        transition.updateAlpha(node: self.expandedBackgroundNode, alpha: isExpanded ? 1.0 : 0.0)
         
         let scrubberVerticalOrigin: CGFloat = infoVerticalOrigin + 58.0
         let scrubberInset: CGFloat = 9.0
@@ -900,6 +1103,8 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         transition.updateFrame(node: self.playPauseButton, frame: playPauseFrame)
         transition.updateFrame(node: self.playPauseIconNode, frame: CGRect(origin: CGPoint(x: -6.0, y: -6.0), size: CGSize(width: 76.0, height: 76.0)))
                                  
+        self.updateLyricsCard(width: width, isExpanded: isExpanded, top: buttonsRect.maxY + 6.0, bottom: finalPanelHeight - (savedMusic != nil ? 52.0 + ContainerViewLayout.concentricInsets(bottomInset: bottomInset, innerDiameter: 52.0, sideInset: 30.0).bottom + 8.0 : max(bottomInset, 12.0)), transition: transition)
+
         if let savedMusic {
             var profileAudioTransition = transition
             if self.profileAudio == nil {
@@ -974,6 +1179,47 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         return finalPanelHeight
     }
     
+    private func updateLyricsCard(width: CGFloat, isExpanded: Bool, top: CGFloat, bottom: CGFloat, transition: ContainedViewLayoutTransition) {
+        let height = bottom - top
+        let wanted = isExpanded && height >= 110.0 && MokoSettings.bool("lyrics.enabled", accountId: 0)
+        if wanted {
+            let card: MokoLyricsCardView
+            if let current = self.lyricsCard {
+                card = current
+            } else if let context = self.lyricsContext?() {
+                card = MokoLyricsCardView(context: context, strings: self.presentationData.strings)
+                card.alpha = 0.0
+                card.requestExpand = { [weak self] in
+                    guard let self, let controller = self.getParentController(), let context = self.lyricsContext?() else {
+                        return
+                    }
+                    controller.push(mokoLyricsController(context: context))
+                }
+                self.view.addSubview(card)
+                self.lyricsCard = card
+                card.frame = CGRect(x: 16.0, y: top, width: width - 32.0, height: height)
+            } else {
+                return
+            }
+            card.isHidden = false
+            card.updateStrings(self.presentationData.strings)
+            let frame = CGRect(x: 16.0, y: top, width: width - 32.0, height: height)
+            transition.updateFrame(view: card, frame: frame)
+            card.updateLayout(size: frame.size)
+            transition.updateAlpha(layer: card.layer, alpha: 1.0)
+        } else if let card = self.lyricsCard {
+            transition.updateAlpha(layer: card.layer, alpha: 0.0, completion: { [weak self, weak card] _ in
+                guard let self, let card, !self.isExpanded || card.alpha < 0.01 else {
+                    return
+                }
+                card.removeFromSuperview()
+                if self.lyricsCard === card {
+                    self.lyricsCard = nil
+                }
+            })
+        }
+    }
+
     func collapse() {
         if self.isExpanded {
             self.isExpanded = false
@@ -1212,9 +1458,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
                     return
                 }
             }
-            if let currentFileReference = self.currentFileReference, let currentAlbumArt = self.currentAlbumArt {
-                self.requestAlbumArtDisplay?((currentFileReference, currentAlbumArt))
-            }
+            self.requestExpand()
         }
     }
     

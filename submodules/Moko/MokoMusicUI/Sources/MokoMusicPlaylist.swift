@@ -17,6 +17,17 @@ struct MokoMusicPlaylistId: SharedMediaPlaylistId {
     }
 }
 
+extension MokoMusicContext {
+    /// The catalogue track an item of the app player is, nil for any other audio. The player sheet
+    /// uses it to offer like / send / add-to-profile for catalogue tracks only.
+    public func catalogueTrack(for itemId: SharedMediaPlaylistItemId?) -> MokoMusicTrack? {
+        guard let itemId = itemId as? MokoMusicPlaylistItemId, let track = self.currentTrack, track.id == itemId.trackId else {
+            return nil
+        }
+        return track
+    }
+}
+
 struct MokoMusicPlaylistItemId: SharedMediaPlaylistItemId {
     let trackId: String
 
