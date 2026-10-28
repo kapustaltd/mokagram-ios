@@ -39,6 +39,7 @@ import ChatMessageBubbleItemNode
 import AdsInfoScreen
 import AdsReportScreen
 import WalletContext
+import MokoCore
  
 private struct MessageContextMenuData {
     let starStatus: Bool?
@@ -690,8 +691,23 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     
                     f(.default)
                 })))
+
+                if !message.text.isEmpty {
+                    let isRussianInterface = chatPresentationInterfaceState.strings.baseLanguageCode == "ru"
+                    actions.append(.action(ContextMenuActionItem(text: isRussianInterface ? "Копировать с автором" : "Copy with author", icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor)
+                    }, action: { _, f in
+                        let authorName = message.author.flatMap { EnginePeer($0).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: chatPresentationInterfaceState.nameDisplayOrder) } ?? ""
+                        let text = MokoMisc.copyWithAuthor(date: Date(timeIntervalSince1970: TimeInterval(message.timestamp)), author: authorName, text: message.text)
+                        storeMessageTextInPasteboard(text, entities: nil)
+                        Queue.mainQueue().after(0.2, {
+                            controllerInteraction.displayUndo(.copy(text: chatPresentationInterfaceState.strings.Conversation_MessageCopied))
+                        })
+                        f(.default)
+                    })))
+                }
             }
-            
+
             if let author = message.author, let addressName = author.addressName {
                 let link = "https://t.me/\(addressName)"
                 actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopyLink, icon: { theme in
@@ -963,6 +979,77 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         let isPremium = accountPeer?.isPremium ?? false
 
         var actions: [ContextMenuItem] = []
+
+        if messages.count == 1 {
+            let isRussian = chatPresentationInterfaceState.strings.baseLanguageCode == "ru"
+            let title = isRussian ? "Информация о сообщении" : "Message information"
+            actions.append(.action(ContextMenuActionItem(text: title, icon: { _ in nil }, action: { c, _ in
+                c?.dismiss(completion: {
+                    let formatter = DateFormatter()
+                    formatter.dateStyle = .medium
+                    formatter.timeStyle = .medium
+                    formatter.locale = Locale(identifier: chatPresentationInterfaceState.strings.baseLanguageCode)
+                    func date(_ timestamp: Int32) -> String {
+                        return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+                    }
+                    var rows = [
+                        "\(isRussian ? "ID сообщения" : "Message ID"): \(message.id.id)",
+                        "\(isRussian ? "ID чата" : "Chat ID"): \(message.id.peerId.toInt64())",
+                        "\(isRussian ? "Отправлено" : "Sent"): \(date(message.timestamp))"
+                    ]
+                    if let edit = message.attributes.compactMap({ $0 as? EditedMessageAttribute }).first, !edit.isHidden, edit.date != 0 {
+                        rows.append("\(isRussian ? "Изменено" : "Edited"): \(date(edit.date))")
+                    }
+                    if let views = message.attributes.compactMap({ $0 as? ViewCountMessageAttribute }).first {
+                        rows.append("\(isRussian ? "Просмотры" : "Views"): \(views.count)")
+                    }
+                    if let forward = message.forwardInfo {
+                        if let author = forward.author ?? forward.source {
+                            rows.append("\(isRussian ? "Переслано от" : "Forwarded from"): \(EnginePeer(author).compactDisplayTitle)")
+                        } else if let signature = forward.authorSignature, !signature.isEmpty {
+                            rows.append("\(isRussian ? "Переслано от" : "Forwarded from"): \(signature)")
+                        }
+                        rows.append("\(isRussian ? "Исходное время" : "Original time"): \(date(forward.date))")
+                        if let sourceId = forward.sourceMessageId {
+                            rows.append("\(isRussian ? "ID оригинала" : "Original ID"): \(sourceId.id)")
+                        }
+                    }
+                    for media in message.media {
+                        if let file = media as? TelegramMediaFile {
+                            if let name = file.fileName, !name.isEmpty {
+                                rows.append("\(isRussian ? "Файл" : "File"): \(name)")
+                            }
+                            rows.append("\(isRussian ? "Тип" : "Type"): \(file.mimeType)")
+                            if let size = file.size {
+                                rows.append("\(isRussian ? "Размер" : "Size"): \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))")
+                            }
+                            if let duration = file.duration {
+                                rows.append("\(isRussian ? "Длительность" : "Duration"): \(duration) \(isRussian ? "с" : "s")")
+                            }
+                            if file.isVoice, let path = context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(file.resource.id)), let handle = FileHandle(forReadingAtPath: path) {
+                                defer { handle.closeFile() }
+                                let metadata = MokoVoiceMetadataReader.parse(handle.readData(ofLength: 4096))
+                                if let rate = metadata.sampleRate {
+                                    rows.append("\(isRussian ? "Частота записи" : "Sample rate"): \(rate) Hz")
+                                }
+                                if let encoder = metadata.encoder {
+                                    rows.append("\(isRussian ? "Кодировщик" : "Encoder"): \(encoder)")
+                                }
+                            }
+                        } else if let image = media as? TelegramMediaImage {
+                            rows.append("\(isRussian ? "ID фото" : "Photo ID"): \(image.imageId.id)")
+                        }
+                    }
+                    let info = rows.joined(separator: "\n")
+                    controllerInteraction.presentController(textAlertController(context: context, title: title, text: info, actions: [
+                        TextAlertAction(type: .genericAction, title: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopy, action: {
+                            UIPasteboard.general.string = info
+                        }),
+                        TextAlertAction(type: .defaultAction, title: chatPresentationInterfaceState.strings.Common_OK, action: {})
+                    ]), nil)
+                })
+            })))
+        }
 
         if isSharedMediaPolls && messages.count == 1 {
             actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.SharedMedia_ViewInChat, icon: { theme in

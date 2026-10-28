@@ -512,6 +512,14 @@ public extension EnginePeer {
     var isVerified: Bool {
         return self._asPeer().isVerified
     }
+
+    var mokaBadgeIconFileId: Int64? {
+        return self._asPeer().mokaBadgeIconFileId
+    }
+
+    var isVerifiedForDisplay: Bool {
+        return self._asPeer().isVerifiedForDisplay
+    }
     
     var isPremium: Bool {
         return self._asPeer().isPremium

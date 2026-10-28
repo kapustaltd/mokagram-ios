@@ -51,6 +51,7 @@ import WalletSendScreen
 import PasscodeCore
 import LiquidGlassShapes
 import MTProtoRustEngine
+import MokoCore
 
 #if DEBUG
 import AlertComponent
@@ -312,7 +313,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         
         let baseAppBundleId = Bundle.main.bundleIdentifier!
-        let appGroupName = "group.\(baseAppBundleId)"
+        let appGroupName = MokoStorage.appGroupName(baseAppBundleId: baseAppBundleId)
 
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
         configuration.sharedContainerIdentifier = appGroupName
@@ -558,7 +559,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "unknown"
         
         let baseAppBundleId = Bundle.main.bundleIdentifier!
-        let appGroupName = "group.\(baseAppBundleId)"
+        let appGroupName = MokoStorage.appGroupName(baseAppBundleId: baseAppBundleId)
+        MokoStorage.configure(appGroupName: appGroupName)
+        MokoLegacyMigration.run(legacy: .standard)
         try! PasscodeEnvironment.shared.configure(PasscodeConfiguration(appGroupIdentifier: appGroupName, processRole: .mainApp, biometricKeychainService: walletBiometricKeychainService), privateAccessGroup: {
             BuildConfig.keychainAccessGroup(baseAppBundleId: baseAppBundleId)
         })
@@ -2118,6 +2121,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         self.isActiveValue = true
         self.isActivePromise.set(true)
 
+        MokoBadges.refresh()
         self.resetBadge()
         
         self.maybeCheckForUpdates()

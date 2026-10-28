@@ -3,6 +3,7 @@ import UIKit
 import TelegramCore
 import SwiftSignalKit
 import UrlEscaping
+import MokoCore
 
 public struct ExternalMusicAlbumArtResourceId {
     public let title: String
@@ -59,5 +60,22 @@ public class ExternalMusicAlbumArtResource: Equatable {
 }
 
 public func fetchExternalMusicAlbumArtResource(engine: TelegramEngine, file: FileMediaReference?, resource: ExternalMusicAlbumArtResource) -> Signal<EngineMediaResource.Fetch.Result, EngineMediaResource.Fetch.Error> {
+    // mokaGram: a SoundCloud track carries its own cover; Telegram's lookup by title would guess.
+    if let fileId = (file ?? resource.file)?.media.fileId.id, let url = MokoArtworkRegistry.url(fileId: fileId) {
+        return Signal { subscriber in
+            let task = URLSession.shared.dataTask(with: url, completionHandler: { data, _, _ in
+                guard let data, !data.isEmpty else {
+                    subscriber.putError(.generic)
+                    return
+                }
+                subscriber.putNext(.dataPart(resourceOffset: 0, data: data, range: 0 ..< Int64(data.count), complete: true))
+                subscriber.putCompletion()
+            })
+            task.resume()
+            return ActionDisposable {
+                task.cancel()
+            }
+        }
+    }
     return engine.resources.fetchAlbumCover(file: file, title: resource.title, performer: resource.performer, isThumbnail: resource.isThumbnail)
 }

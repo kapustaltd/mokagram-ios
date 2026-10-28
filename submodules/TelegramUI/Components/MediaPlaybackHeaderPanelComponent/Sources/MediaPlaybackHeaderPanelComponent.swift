@@ -269,6 +269,21 @@ public final class MediaPlaybackHeaderPanelComponent: Component {
                         // playlists open, anchored on the message the playlist came from. That works because a
                         // rich message IS `.music`-tagged (`tagsForStoreMessage` folds the attribute's media in),
                         // so the player's own music-tagged history list finds it.
+                        // mokaGram SoundCloud queue: the full player shows the queue rows synthesized from the location.
+                        if let mokoLocation = component.data.playlistLocation as? MokoMusicPlaylistLocation {
+                            let controllerContext: AccountContext
+                            if component.data.account.id == component.context.account.id {
+                                controllerContext = component.context
+                            } else {
+                                controllerContext = component.context.sharedContext.makeTempAccountContext(account: component.data.account)
+                            }
+                            let anchorMessageId = EngineMessage.Id(peerId: controllerContext.account.peerId, namespace: Namespaces.Message.Local, id: Int32(clamping: mokoLocation.currentIndex ?? 0))
+                            let playerController = component.context.sharedContext.makeOverlayAudioPlayerController(context: controllerContext, chatLocation: .peer(id: controllerContext.account.peerId), type: component.data.kind, initialMessageId: anchorMessageId, initialOrder: component.data.playbackOrder, playlistLocation: mokoLocation, parentNavigationController: navigationController)
+                            self.window?.endEditing(true)
+                            playerController.navigationPresentation = .flatModal
+                            controller.push(playerController)
+                            return
+                        }
                         if let instantPageLocation = component.data.playlistLocation as? InstantPagePlaylistLocation {
                             // An Instant View page has no message to open — leave it inert, as before.
                             guard let messageId = instantPageLocation.messageId else {

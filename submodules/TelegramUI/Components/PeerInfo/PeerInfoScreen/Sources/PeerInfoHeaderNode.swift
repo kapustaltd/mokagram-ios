@@ -609,7 +609,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             } else {
                 credibilityIcon = .none
             }
-            if peer.isVerified {
+            if peer.isVerifiedForDisplay {
                 credibilityIcon = .verified
             }
             if let verificationIconFileId = peer.verificationIconFileId {
@@ -1184,7 +1184,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let usernameString: (text: String, attributes: MultiScaleTextState.Attributes)
         if let peer = peer {
             isPremium = peer.isPremium
-            isVerified = peer.isVerified
+            isVerified = peer.isVerified || peer.mokaBadgeIconFileId != nil
             isFake = peer.isFake || peer.isScam
         }
         

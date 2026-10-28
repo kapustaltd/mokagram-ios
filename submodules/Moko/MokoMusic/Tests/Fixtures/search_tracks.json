@@ -1,0 +1,1066 @@
+{
+ "collection": [
+  {
+   "id": 2408461857,
+   "title": "Dâu Hào Môn Lofi",
+   "user": {
+    "id": 1372911462,
+    "username": "Đây Bình",
+    "avatar_url": "https://a1.sndcdn.com/images/default_avatar_large.png"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-2sAZzlyoS5BihX2W-cfzNYA-large.jpg",
+   "permalink_url": "https://soundcloud.com/y-b-nh-708353768/dau-hao-mon-lofi",
+   "duration": 244108,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 296185,
+   "likes_count": 2363,
+   "created_at": "2026-09-27T05:56:33Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2408461857/cd5984a5-8ee0-41c1-a154-8ec98eb8a213/stream/hls",
+      "preset": "aac_96k",
+      "duration": 244108,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2408461857/0bfc5172-d299-4fe0-8f3e-138f48df0c2d/stream/hls",
+      "preset": "abr_sq",
+      "duration": 244108,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2398021050,
+   "title": "Giá Như Anh Là Em |Lofi .| - Lệ Quyên",
+   "user": {
+    "id": 1210135090,
+    "username": "Olise",
+    "avatar_url": "https://i1.sndcdn.com/avatars-CSR8XaMy12XuoN5w-zGuguA-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-Q6DOEbZ6HmKyhJPL-qiLKyQ-large.jpg",
+   "permalink_url": "https://soundcloud.com/abcxyz16/gi-nh-anh-l-em-lofi-hot-tiktok",
+   "duration": 216190,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": null,
+   "playback_count": 651705,
+   "likes_count": 5642,
+   "created_at": "2026-09-10T16:11:42Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2398021050/6e3f518f-5ac1-49b4-80d8-a587837a5c35/stream/hls",
+      "preset": "aac_160k",
+      "duration": 216190,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2398021050/dc6112bf-0d2c-41a3-bded-61e9cdad2bcf/stream/hls",
+      "preset": "aac_96k",
+      "duration": 216190,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2398021050/d9727722-19ad-4e71-9ad3-2f498171442c/stream/hls",
+      "preset": "abr_sq",
+      "duration": 216190,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1609743192,
+   "title": "NƯỚC MẮT EM LAU BẰNG TÌNH YÊU MỚI' (CM1X LOFI VER.) - DA LAB ft. TÓC TIÊN",
+   "user": {
+    "id": 786917425,
+    "username": "T.Phúc 0312",
+    "avatar_url": "https://i1.sndcdn.com/avatars-82DLY6UV1hQZotK4-zWfxlw-large.jpg"
+   },
+   "artwork_url": null,
+   "permalink_url": "https://soundcloud.com/phucc-thiien/nu-o-c-ma-t-em-lau-ba-ng-ti-nh",
+   "duration": 267718,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 3169250,
+   "likes_count": 11909,
+   "created_at": "2023-09-06T13:01:56Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1609743192/150aa050-ae66-4c91-ae1d-9ea5c3f132b7/stream/hls",
+      "preset": "aac_160k",
+      "duration": 267718,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1609743192/6e6035e4-6f15-4e39-a061-fb1aad67cfb1/stream/hls",
+      "preset": "aac_96k",
+      "duration": 267718,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1609743192/ba37bc36-aab5-418a-acf5-7768c3c6ed61/stream/hls",
+      "preset": "abr_sq",
+      "duration": 267718,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1245312706,
+   "title": "Tìm Lại Bầu Trời - Tuấn Hưng x Truongg | Lofi Ver",
+   "user": {
+    "id": 938096365,
+    "username": "Truonggg",
+    "avatar_url": "https://i1.sndcdn.com/avatars-V8UWiUi8uklGYB3W-arg1rw-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-sUyY39qqQ1Tk53Il-HmZeTg-large.jpg",
+   "permalink_url": "https://soundcloud.com/tr-ng-nguy-n-556040942/tim-lai-bau-troi-tuan-hung-x-truongg-lofi-ver",
+   "duration": 245606,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "R&B & Soul",
+   "playback_count": 1190654,
+   "likes_count": 4387,
+   "created_at": "2022-04-06T12:49:22Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1245312706/efa94dff-15ce-4185-8c60-3a860677918d/stream/hls",
+      "preset": "aac_160k",
+      "duration": 245606,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1245312706/3e20bc31-87a3-41c4-a0d3-867f96b5be04/stream/hls",
+      "preset": "aac_96k",
+      "duration": 245606,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1245312706/96f53dec-5737-45b9-aa0c-a15d7b8a2238/stream/hls",
+      "preset": "abr_sq",
+      "duration": 245606,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1212669337,
+   "title": "Kẻ Điên Tin Vào Tình Yêu - Lil Z Poet (Chill Out Ver. By Ekid x T - Bin) / Lofi Vietnam",
+   "user": {
+    "id": 286496684,
+    "username": "Ekid",
+    "avatar_url": "https://i1.sndcdn.com/avatars-4OeLpEp6AoLpwLY5-Vf5BEw-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-o7zzuNbzjLr6CIDz-D6gXsQ-large.jpg",
+   "permalink_url": "https://soundcloud.com/ekidprodr/ke-dien-tin-vao-tinh-yeu-lil-z-poetchill-out-ver-by-ekid-x-t-bin-lofi-vietnam",
+   "duration": 225419,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "Pop",
+   "playback_count": 1533726,
+   "likes_count": 8053,
+   "created_at": "2022-02-09T12:58:01Z",
+   "tag_list": "lofi lil_z_poet ke_dien_tin_vao_tinh_yeu ekid t-bin",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1212669337/2dfee5f5-65fc-4d38-9181-88e594d5968c/stream/hls",
+      "preset": "aac_160k",
+      "duration": 225419,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1212669337/7c8dbf01-5693-4cb0-9787-d64eec698e62/stream/hls",
+      "preset": "aac_96k",
+      "duration": 225419,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1212669337/1c72be4f-658b-4b54-808a-d2cdc2c84f5e/stream/hls",
+      "preset": "abr_sq",
+      "duration": 225419,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2314190015,
+   "title": "Mùa Thu Và Lời Xin Lỗi (Lofi) - Thành Đạt x Frésh - YouTube",
+   "user": {
+    "id": 1496955755,
+    "username": "Hoàng Bùi",
+    "avatar_url": "https://i1.sndcdn.com/avatars-NpyAG1T6GTCEO0yd-TwM9gQ-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-lIuDbjcK3cKFHzxw-JVl6XQ-large.png",
+   "permalink_url": "https://soundcloud.com/hoang-bui-564566093/m-a-thu-v-l-i-xin-l-i-lofi-th",
+   "duration": 284932,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 1782498,
+   "likes_count": 9552,
+   "created_at": "2026-05-04T07:46:16Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2314190015/603c52f2-f5ce-43f1-9f59-df40adb42ea0/stream/hls",
+      "preset": "aac_96k",
+      "duration": 284932,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2314190015/c12458f3-c4c2-4a99-af5d-9317cbb4ea40/stream/hls",
+      "preset": "abr_sq",
+      "duration": 284932,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2304784847,
+   "title": "Khat - Navjot  Ahuja ｜ Slowed Reverb ｜ Lofi ｜ Bass Bhaiya ｜",
+   "user": {
+    "id": 1194202693,
+    "username": "Bass Bhaiya",
+    "avatar_url": "https://i1.sndcdn.com/avatars-kMQyPZ6FakB2zQfP-84qXyQ-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-GLrcfVhuF3nzolAx-gINdDA-large.png",
+   "permalink_url": "https://soundcloud.com/bass-bhaiya/khat-navjot-ahuja-slowed",
+   "duration": 349901,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 972874,
+   "likes_count": 16902,
+   "created_at": "2026-04-18T07:48:08Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2304784847/bc04cdc8-13fa-4dba-8957-b8f0d01d3f65/stream/hls",
+      "preset": "aac_160k",
+      "duration": 349901,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2304784847/1f66fd97-4e81-41c7-a067-9f2ea157316c/stream/hls",
+      "preset": "aac_96k",
+      "duration": 349901,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2304784847/92c78086-1e0f-4ee3-96e6-5933707eaf5d/stream/hls",
+      "preset": "abr_sq",
+      "duration": 349901,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1089670480,
+   "title": "Trò Đùa ( Lofi Ver. ) - Quang Đăng Trần X Zeaplee",
+   "user": {
+    "id": 995461315,
+    "username": "Zeaplee Official ✪",
+    "avatar_url": "https://i1.sndcdn.com/avatars-8fynTQu0ErAaLMI3-lMDDTQ-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-2NFzC1wpOvvhbL3h-9Hy3Kg-large.jpg",
+   "permalink_url": "https://soundcloud.com/zeapleeprod/tro-dua-lofi-ver-quang-dang-tran-x-zeaplee",
+   "duration": 257865,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "Lofi Ver.",
+   "playback_count": 1689046,
+   "likes_count": 5164,
+   "created_at": "2021-07-18T10:34:28Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1089670480/0c78e235-0f60-4eea-a8db-d429d1c689f1/stream/hls",
+      "preset": "aac_160k",
+      "duration": 257865,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1089670480/d5682431-d853-464a-88d6-239a9860e8ae/stream/hls",
+      "preset": "aac_96k",
+      "duration": 257865,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1089670480/39a94d3f-0517-41d2-a4da-7c89f13e5a58/stream/hls",
+      "preset": "abr_sq",
+      "duration": 257865,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2176251972,
+   "title": "Họa Sĩ Tồi Lofi Chill",
+   "user": {
+    "id": 1605641268,
+    "username": "Thanh Tùng",
+    "avatar_url": "https://i1.sndcdn.com/avatars-AL8Mvv4VBzRrTWtP-eXsfyA-large.jpg"
+   },
+   "artwork_url": null,
+   "permalink_url": "https://soundcloud.com/thanh-tung-284086793/hoa-si-toi-lofi-ver",
+   "duration": 257207,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 2272873,
+   "likes_count": 10534,
+   "created_at": "2025-09-25T07:02:17Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2176251972/754c0264-0ec7-4eae-ae7f-c54289f31e9d/stream/hls",
+      "preset": "aac_96k",
+      "duration": 257207,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2176251972/50883287-fed5-4958-960d-9976a6acb8dc/stream/hls",
+      "preset": "abr_sq",
+      "duration": 257207,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1068221248,
+   "title": "She Neva Know Lofi Ver",
+   "user": {
+    "id": 779476813,
+    "username": "Tien Pham",
+    "avatar_url": "https://i1.sndcdn.com/avatars-8ZMhNK4iv3gTcbYS-1JD89g-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-Wlp4Yz0biydOymIY-XulhEg-large.jpg",
+   "permalink_url": "https://soundcloud.com/tien-pham-418156952/she-neva-know-lofi-ver",
+   "duration": 165218,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 2844194,
+   "likes_count": 10840,
+   "created_at": "2021-06-14T15:40:10Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1068221248/79fd32ca-f1fb-415b-b95d-42c1f22115b2/stream/hls",
+      "preset": "aac_160k",
+      "duration": 165218,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1068221248/784e264c-72c2-4aa7-b629-6830d4ac2222/stream/hls",
+      "preset": "aac_96k",
+      "duration": 165218,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1068221248/9f35a0ef-c157-45a5-ae23-8f925162dc9f/stream/hls",
+      "preset": "abr_sq",
+      "duration": 165218,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2140075140,
+   "title": "NGÀN NĂM ÁNH SÁNG - ĐẶNG VĨNH THỊNH ( lofi by mihle )",
+   "user": {
+    "id": 1226709469,
+    "username": "undetected user",
+    "avatar_url": "https://a1.sndcdn.com/images/default_avatar_large.png"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-4RdK0VCyN1g0enmV-QvSdHA-large.jpg",
+   "permalink_url": "https://soundcloud.com/thanh-vinh-le-784774209/ng-n-n-m-nh-s-ng-ng-v-nh-th-nh",
+   "duration": 239470,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "Jazz & Blues",
+   "playback_count": 2055045,
+   "likes_count": 10020,
+   "created_at": "2025-08-01T05:17:40Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2140075140/98d0f5a6-ee0d-40e6-86a0-392570d18a72/stream/hls",
+      "preset": "aac_160k",
+      "duration": 239470,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2140075140/49f95ada-75c4-401d-8b00-64e5be3a97f7/stream/hls",
+      "preset": "aac_96k",
+      "duration": 239470,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2140075140/5a27dff1-c8a1-4c6a-a090-e9b31726d705/stream/hls",
+      "preset": "abr_sq",
+      "duration": 239470,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 884565820,
+   "title": "Vì đã lỡ yêu em rồi, chẳng dám hứa xa xôi...| Đã Lỡ Yêu Em Nhiều - JustaTee ( Lofi By Lil Kay )",
+   "user": {
+    "id": 874547365,
+    "username": "Hyarways",
+    "avatar_url": "https://i1.sndcdn.com/avatars-M695zhdC5wUjrs6u-kPLXqA-large.jpg"
+   },
+   "artwork_url": null,
+   "permalink_url": "https://soundcloud.com/hyarways/vi-da-lo-yeu-em-roi-chang-dam-hua-xa-xoi-da-lo-yeu-em-nhieu-justatee-lofi-by-lil-kay",
+   "duration": 266216,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 924016,
+   "likes_count": 4389,
+   "created_at": "2020-08-30T15:43:32Z",
+   "tag_list": "\"đã lỡ yêu em nhiều\" \"da lo yeu em nhieu\" hyarways lofi \"đã lỡ yêu em nhiều lofi\" \"đã lỡ yêu em nhiều lofi ver\" \"lofi ver\"",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:884565820/56811471-06c4-4fe6-807c-4562ecf7b2f6/stream/hls",
+      "preset": "aac_96k",
+      "duration": 266216,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:884565820/54d5f666-da2e-482f-ab7c-f34dffbb01fe/stream/hls",
+      "preset": "abr_sq",
+      "duration": 266216,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2210870693,
+   "title": "Chẳng Hợp Nhau Đâu lofi nhẹ nhàng - Lê Bảo Bình AI | Dĩ Nhiên Rồi Người Ta Là Lựa Chọn Của Em Mà",
+   "user": {
+    "id": 1231589755,
+    "username": "huy nguyen",
+    "avatar_url": "https://i1.sndcdn.com/avatars-tiZpBzVmLoPBNgWX-dtTKgA-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-YR6Rnm0AeJuzZd57-YpxISw-large.jpg",
+   "permalink_url": "https://soundcloud.com/huy-nguyen-198162022/ch-ng-h-p-nhau-u-l-b-o-b-nh-d",
+   "duration": 262864,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": null,
+   "playback_count": 1026641,
+   "likes_count": 4258,
+   "created_at": "2025-11-11T19:38:37Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2210870693/3f3aa4e2-bd0e-4b0c-bef6-0e0789bfb55a/stream/hls",
+      "preset": "aac_96k",
+      "duration": 262864,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2210870693/0dc6e71b-6b64-43e1-949c-926ac75febe3/stream/hls",
+      "preset": "abr_sq",
+      "duration": 262864,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1368505285,
+   "title": "Từng Là Của Nhau - Bảo Anh ft Táo | Lofi ver Anh Luc x ChillDong",
+   "user": {
+    "id": 315480219,
+    "username": "gialecute",
+    "avatar_url": "https://i1.sndcdn.com/avatars-Im4jF6ThitNP9qMY-UWhE4Q-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-HjX4mBZ2am30Xfyo-PSTCdQ-large.jpg",
+   "permalink_url": "https://soundcloud.com/nguyen-gia-le/t-ng-l-c-a-nhau-b-o-anh-ft-t-o",
+   "duration": 235798,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 1274497,
+   "likes_count": 5486,
+   "created_at": "2022-10-23T09:05:19Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1368505285/eef72756-eee3-4eef-a8f0-ecdce82b26c1/stream/hls",
+      "preset": "aac_160k",
+      "duration": 235798,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1368505285/28159481-050e-4248-a696-b2f1b71f8198/stream/hls",
+      "preset": "aac_96k",
+      "duration": 235798,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1368505285/6dfe9246-d555-4708-b23c-1023543a3f3b/stream/hls",
+      "preset": "abr_sq",
+      "duration": 235798,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1192797721,
+   "title": "Anh Sợ Yêu Lofi Ver  Anh Quân Idol x Freak D",
+   "user": {
+    "id": 445149858,
+    "username": "hihi",
+    "avatar_url": "https://i1.sndcdn.com/avatars-Y7ylomj4GUjj84P7-I2LgwA-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-Nn64yLLXTOnMmy7o-zVSiPw-large.jpg",
+   "permalink_url": "https://soundcloud.com/nhuquynh291102/anh-so-ye-u-lofi-ver-anh-qua-n",
+   "duration": 285326,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 3100944,
+   "likes_count": 12573,
+   "created_at": "2022-01-08T19:09:37Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1192797721/cfd4f0ec-da7e-4ac9-b1f4-72e2de9c001f/stream/hls",
+      "preset": "aac_96k",
+      "duration": 285326,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1192797721/cda12e30-f712-498a-8959-e94a632ef022/stream/hls",
+      "preset": "abr_sq",
+      "duration": 285326,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1397776639,
+   "title": "Nếu Ngày Ấy ( Lofi ) - Soobin Hoàng Sơn",
+   "user": {
+    "id": 959172046,
+    "username": "Thanh Định",
+    "avatar_url": "https://i1.sndcdn.com/avatars-nswALsK7GgfcIKSK-zwbrwQ-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-NbiTxz9fagemVHeq-nRlzxg-large.jpg",
+   "permalink_url": "https://soundcloud.com/thanh-nh-227237344/n-u-ng-y-y-lofi-soobin-ho-ng-s",
+   "duration": 290057,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 1369027,
+   "likes_count": 6573,
+   "created_at": "2022-12-07T06:14:58Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1397776639/fdf645a3-8e90-4e1f-ae5a-61e2ecccd25c/stream/hls",
+      "preset": "aac_96k",
+      "duration": 290057,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1397776639/ed3ef6b5-7c42-40f0-8f24-b7e64e0a1bd8/stream/hls",
+      "preset": "abr_sq",
+      "duration": 290057,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1102400971,
+   "title": "Lúc Đắm Đuối Anh Cho Rằng Tình Ta Như Ánh Trăng Rằm - Lofi By Tama ( Dĩ Vãng Nhạt Nhoà )",
+   "user": {
+    "id": 777305179,
+    "username": "SeaStarTQ",
+    "avatar_url": "https://i1.sndcdn.com/avatars-LllMBzfz6Wf3BEWx-BUFUAg-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-IzoaNY1MqDzLExm1-sM2J2Q-large.jpg",
+   "permalink_url": "https://soundcloud.com/sea-startq/luc-dam-duoi-anh-cho-rang-tinh-ta-nhu-anh-trang-ram-lofi-by-tama-di-vang-nhat-nhoa",
+   "duration": 202152,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 2117322,
+   "likes_count": 10606,
+   "created_at": "2021-08-08T15:18:14Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1102400971/c096f858-253c-40ba-9cb4-3e4992c4bcd8/stream/hls",
+      "preset": "aac_96k",
+      "duration": 202152,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1102400971/d53fd503-bfe0-42ea-a388-e6bf279b0935/stream/hls",
+      "preset": "abr_sq",
+      "duration": 202152,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 1558404454,
+   "title": "Yêu 3 Năm Dại 1 Giờ Lofi Lyrics  Chu Thúy Quỳnh X MeChill",
+   "user": {
+    "id": 670835948,
+    "username": "ղ❍ղꜱζ❍ρ ლℯℯ ℳ¡✘",
+    "avatar_url": "https://i1.sndcdn.com/avatars-uyEz04zFrTZQTtva-UtpzmA-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-hGN2LnuzHR9ZZQWZ-WMONsg-large.jpg",
+   "permalink_url": "https://soundcloud.com/qu-nh-s-t-161680454/yeu-3-nam-dai-1-gio-lofi-lyrics-chu-thuy-quynh-x-mechill",
+   "duration": 219567,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "Deep House",
+   "playback_count": 914329,
+   "likes_count": 3217,
+   "created_at": "2023-07-07T13:24:09Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1558404454/bdd59ddf-9519-4231-b6e8-298b1667d04c/stream/hls",
+      "preset": "aac_160k",
+      "duration": 219567,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1558404454/b0eacb01-5041-4f9f-b66f-bc4246eb1b50/stream/hls",
+      "preset": "aac_96k",
+      "duration": 219567,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:1558404454/34e7fb0a-28ee-4ec2-b6c7-cf5e2986de8d/stream/hls",
+      "preset": "abr_sq",
+      "duration": 219567,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2123763336,
+   "title": "Nhạc Chill Dễ Ngủ 2025 📻 Nhạc Chill Nhẹ Nhàng Cực Suy - Lofi Chill Hay Nhất Hiện Nay",
+   "user": {
+    "id": 1379639053,
+    "username": "𝘭𝘶̛𝘰̛𝘯𝘨 𝘵𝘶𝘺𝘦̂̀𝘯𓅸",
+    "avatar_url": "https://i1.sndcdn.com/avatars-uYrVv2bp2MkjeKA6-Cr2y8g-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-bDRqfby0su8CjoEQ-GHoG3g-large.jpg",
+   "permalink_url": "https://soundcloud.com/luongtuyen/nhacchill",
+   "duration": 6552094,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": "",
+   "playback_count": 1194172,
+   "likes_count": 11168,
+   "created_at": "2025-07-03T12:17:49Z",
+   "tag_list": "ngocyenn",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2123763336/d38e2473-b310-46e3-b81c-bc3a3c96cccf/stream/hls",
+      "preset": "aac_96k",
+      "duration": 6552094,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2123763336/b06c94d8-57aa-426d-89b4-50c75c08b8c0/stream/hls",
+      "preset": "abr_sq",
+      "duration": 6552094,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  },
+  {
+   "id": 2197106259,
+   "title": "không buông     |lofi|",
+   "user": {
+    "id": 942347812,
+    "username": "tomie",
+    "avatar_url": "https://i1.sndcdn.com/avatars-V9CVqbSf6yw536qk-x8TU8A-large.jpg"
+   },
+   "artwork_url": "https://i1.sndcdn.com/artworks-m8tb9fGFZqftgwHT-Fl8ncQ-large.jpg",
+   "permalink_url": "https://soundcloud.com/my-sayhi/khong-buong-lofi",
+   "duration": 199294,
+   "track_authorization": "REDACTED-AUTH",
+   "genre": null,
+   "playback_count": 1067109,
+   "likes_count": 5354,
+   "created_at": "2025-10-23T13:20:55Z",
+   "tag_list": "",
+   "media": {
+    "transcodings": [
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2197106259/201ebd08-6179-42e1-a18e-ec3c27754c03/stream/hls",
+      "preset": "aac_96k",
+      "duration": 199294,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mp4; codecs=\"mp4a.40.2\""
+      },
+      "quality": "lq",
+      "is_legacy_transcoding": false
+     },
+     {
+      "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:2197106259/86d7f122-b7a5-44eb-8d1e-8049a8335f5f/stream/hls",
+      "preset": "abr_sq",
+      "duration": 199294,
+      "snipped": false,
+      "format": {
+       "protocol": "hls",
+       "mime_type": "audio/mpegurl"
+      },
+      "quality": "sq",
+      "is_legacy_transcoding": false
+     }
+    ]
+   },
+   "kind": "track"
+  }
+ ],
+ "next_href": "https://api-v2.soundcloud.com/search/tracks?query_urn=soundcloud%3Asearch%3A7b5e754f9a914034b3ddbcd1bab4bf02&limit=20&offset=20&q=lofi",
+ "total_results": 1481876
+}

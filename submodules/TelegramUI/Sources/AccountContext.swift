@@ -32,6 +32,7 @@ import WalletContext
 import WalletConnectScreen
 import AlertUI
 import MetalEngine
+import MokoCore
 
 private final class DeviceSpecificContactImportContext {
     let disposable = MetaDisposable()
@@ -794,6 +795,9 @@ public final class AccountContextImpl: AccountContext {
     }
     
     public func applyMaxReadIndex(for location: ChatLocation, contextHolder: Atomic<ChatLocationContextHolder?>, messageIndex: MessageIndex) {
+        if MokoPrivacySettings.suppressAutomaticRead(accountId: self.account.peerId.toInt64(), peerId: messageIndex.id.peerId.toInt64()) {
+            return
+        }
         switch location {
         case .peer:
             let _ = self.engine.messages.applyMaxReadIndexInteractively(index: messageIndex).start()

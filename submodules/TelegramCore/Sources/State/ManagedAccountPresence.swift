@@ -3,6 +3,7 @@ import TelegramApi
 import Postbox
 import SwiftSignalKit
 import MtProtoKit
+import MokoCore
 
 private typealias SignalKitTimer = SwiftSignalKit.Timer
 
@@ -10,6 +11,8 @@ private typealias SignalKitTimer = SwiftSignalKit.Timer
 private final class AccountPresenceManagerImpl {
     private let queue: Queue
     private let network: Network
+    private let accountId: Int64
+    private var privacyObserver: NSObjectProtocol?
     let isPerformingUpdate = ValuePromise<Bool>(false, ignoreRepeated: true)
     
     private var shouldKeepOnlinePresenceDisposable: Disposable?
@@ -18,9 +21,22 @@ private final class AccountPresenceManagerImpl {
     
     private var wasOnline: Bool = false
     
-    init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network) {
+    init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network, accountId: Int64) {
         self.queue = queue
         self.network = network
+        self.accountId = accountId
+
+        self.privacyObserver = NotificationCenter.default.addObserver(forName: MokoSettings.didChange, object: nil, queue: nil, using: { [weak self] notification in
+            guard let self, let key = notification.userInfo?["key"] as? String, key.hasPrefix("ghost."), let changedAccountId = notification.userInfo?["accountId"] as? Int64, changedAccountId == accountId else {
+                return
+            }
+            queue.async { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.updatePresence(self.wasOnline)
+            }
+        })
         
         self.shouldKeepOnlinePresenceDisposable = (shouldKeepOnlinePresence
         |> distinctUntilChanged
@@ -38,13 +54,18 @@ private final class AccountPresenceManagerImpl {
     deinit {
         assert(self.queue.isCurrent())
         self.shouldKeepOnlinePresenceDisposable?.dispose()
+        if let privacyObserver = self.privacyObserver {
+            NotificationCenter.default.removeObserver(privacyObserver)
+        }
         self.currentRequestDisposable.dispose()
         self.onlineTimer?.invalidate()
     }
     
     private func updatePresence(_ isOnline: Bool) {
         let request: Signal<Api.Bool, MTRpcError>
-        if isOnline {
+        self.onlineTimer?.invalidate()
+        self.onlineTimer = nil
+        if isOnline && !MokoPrivacySettings.suppressOnlineUpdates(accountId: self.accountId) {
             let timer = SignalKitTimer(timeout: 30.0, repeat: false, completion: { [weak self] in
                 guard let strongSelf = self else {
                     return
@@ -77,10 +98,10 @@ final class AccountPresenceManager {
     private let queue = Queue()
     private let impl: QueueLocalObject<AccountPresenceManagerImpl>
     
-    init(shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network) {
+    init(shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network, accountId: Int64) {
         let queue = self.queue
         self.impl = QueueLocalObject(queue: self.queue, generate: {
-            return AccountPresenceManagerImpl(queue: queue, shouldKeepOnlinePresence: shouldKeepOnlinePresence, network: network)
+            return AccountPresenceManagerImpl(queue: queue, shouldKeepOnlinePresence: shouldKeepOnlinePresence, network: network, accountId: accountId)
         })
     }
     

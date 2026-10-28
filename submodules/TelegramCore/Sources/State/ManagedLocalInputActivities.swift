@@ -3,6 +3,7 @@ import Postbox
 import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
+import MokoCore
 
 
 public struct PeerActivitySpace: Hashable {
@@ -141,8 +142,23 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
     }
 }
 
+func mokoShouldSendActivity(_ activity: PeerInputActivity?, hideTyping: Bool) -> Bool {
+    guard hideTyping, let activity = activity else {
+        return true
+    }
+    if case .speakingInGroupCall = activity {
+        return true
+    }
+    return false
+}
+
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Signal<Void, NoError> in
+        // Keep cancellation and voice-chat speaking events working while suppressing
+        // chat activity announcements for this account.
+        if !mokoShouldSendActivity(activity, hideTyping: MokoPrivacySettings.hideTyping(accountId: accountPeerId.toInt64())) {
+            return .complete()
+        }
         if let peer = transaction.getPeer(peerId) {
             if peerId == accountPeerId {
                 return .complete()

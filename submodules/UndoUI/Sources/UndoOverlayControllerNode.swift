@@ -1889,7 +1889,9 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             let attributedText = parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(body: body, bold: bold, link: link, linkAttribute: { _ in return nil }), textAlignment: .natural)
             self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(14.0), textColor: .white)
             self.textNode.attributedText = attributedText
-            
+            // A long task (e.g. a mokaGram link download) keeps the toast alive while it reports progress.
+            self.remainingSeconds = self.originalRemainingSeconds
+
             self.statusNode?.transitionToState(.progress(color: .white, lineWidth: nil, value: max(progress, 0.027), cancelEnabled: false, animateRotation: true), completion: {})
         default:
             break

@@ -13,6 +13,9 @@ import DeviceAccess
 import TelegramStringFormatting
 import PeerNameColorItem
 import WalletContext
+import MokoCore
+import MokoSettingsUI
+import MokoMusicUI
 
 enum SettingsSection: Int, CaseIterable {
     case edit
@@ -26,6 +29,7 @@ enum SettingsSection: Int, CaseIterable {
     case advanced
     case payment
     case extra
+    case moko
     case support
 }
 
@@ -342,6 +346,11 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         }
     }
     
+    items[.moko]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "mokaGram", icon: PresentationResourcesSettings.settings, action: {
+        MokoMusicSettings.register()
+        interaction.getController()?.push(mokoSettingsController(context: context))
+    }))
+
     items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.Settings_Support, icon: PresentationResourcesSettings.support, action: {
         interaction.openSettings(.support)
     }))
@@ -350,6 +359,12 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     }))
     items[.support]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_Tips, icon: PresentationResourcesSettings.tips, action: {
         interaction.openSettings(.tips)
+    }))
+    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 3, text: "Based on mokaGram by @ecronx", icon: PresentationResourcesSettings.faq, action: {
+        context.sharedContext.applicationBindings.openUrl("https://t.me/ecronx")
+    }))
+    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 4, text: "mokaGram source code", icon: PresentationResourcesSettings.faq, action: {
+        context.sharedContext.applicationBindings.openUrl("https://github.com/ecronxy/mokagram")
     }))
     
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []
@@ -470,13 +485,13 @@ func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoState, conte
     }
     
     if case let .user(user) = data.peer {
-        items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemPhoneNumber, label: .text(user.phone.flatMap({ formatPhoneNumber(context: context, number: $0) }) ?? ""), text: presentationData.strings.Settings_PhoneNumber, icon: PresentationResourcesSettings.recentCalls, action: {
+        items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemPhoneNumber, label: .text(user.phone.flatMap({ MokoStreamer.displayed(.phone, formatPhoneNumber(context: context, number: $0), accountId: context.account.peerId.toInt64()) }) ?? ""), text: presentationData.strings.Settings_PhoneNumber, icon: PresentationResourcesSettings.recentCalls, action: {
             interaction.openSettings(.phoneNumber)
         }))
     }
     var username = ""
     if let addressName = data.peer?.addressName, !addressName.isEmpty {
-        username = "@\(addressName)"
+        username = MokoStreamer.displayed(.username, "@\(addressName)", accountId: context.account.peerId.toInt64())
     }
     items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemUsername, label: .text(username), text: presentationData.strings.Settings_Username, icon: PresentationResourcesSettings.email, action: {
           interaction.openSettings(.username)

@@ -1,0 +1,11 @@
+{
+    "app": "7.3.3-moka",
+    "format": "mokaset",
+    "values": {
+        "commands.enabled": true,
+        "ghost.enabled": true,
+        "ghost.typing": false,
+        "lag.level": 2
+    },
+    "version": 1
+}

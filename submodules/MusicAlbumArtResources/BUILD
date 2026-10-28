@@ -13,6 +13,7 @@ swift_library(
     	"//submodules/TelegramCore:TelegramCore",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/UrlEscaping:UrlEscaping",
+        "//submodules/Moko/MokoCore",
     ],
     visibility = [
         "//visibility:public",

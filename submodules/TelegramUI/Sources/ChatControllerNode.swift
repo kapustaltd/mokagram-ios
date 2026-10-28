@@ -75,6 +75,8 @@ import RichTextEditorUIKit
 import RichTextEditorMediaView
 import InstantPageUI
 import ChatRichTextEditorComposer
+import MokoCore
+import MokoSaveinatorUI
 
 final class VideoNavigationControllerDropContentItem: NavigationControllerDropContentItem {
     let itemNode: OverlayMediaItemNode
@@ -5021,12 +5023,66 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
     }
 
-    func sendCurrentMessage(silentPosting: Bool? = nil, scheduleTime: Int32? = nil, repeatPeriod: Int32? = nil, postpone: Bool = false, messageEffect: ChatSendMessageEffect? = nil, sendWithoutFormatting: Bool = false, completion: @escaping () -> Void = {}) {
+    /// mokaGram: a message that is only a link to a supported service offers to be sent as downloaded
+    /// media (Desktop `Saveinator::OfferSendDownload`). Returns true when the send was taken over.
+    private func offerSaveinatorDownload(state: ChatPresentationInterfaceState, silentPosting: Bool?, scheduleTime: Int32?, repeatPeriod: Int32?, postpone: Bool, messageEffect: ChatSendMessageEffect?, sendWithoutFormatting: Bool, completion: @escaping () -> Void) -> Bool {
+        switch self.chatLocation {
+        case .peer, .replyThread:
+            break
+        case .customChatContents:
+            return false
+        }
+        let interfaceState = state.interfaceState
+        guard let peerId = self.chatLocation.peerId, interfaceState.editMessage == nil, interfaceState.postSuggestionState == nil, interfaceState.forwardMessageIds == nil, state.slowmodeState == nil || scheduleTime != nil, !postpone else {
+            return false
+        }
+        let originalInputState = interfaceState.composeInputState
+        guard let link = MokoSaveinatorOffer.link(in: originalInputState.inputText.string) else {
+            return false
+        }
+        let replySubject = interfaceState.replyMessageSubject
+        let threadId = self.chatLocation.threadId
+        let context = self.context
+        MokoSaveinatorOffer.present(context: context, link: link, sendAsText: { [weak self] in
+            self?.sendCurrentMessage(silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, postpone: postpone, messageEffect: messageEffect, sendWithoutFormatting: sendWithoutFormatting, skipSaveinator: true, completion: completion)
+        }, download: { [weak self] choice in
+            guard let self else {
+                return
+            }
+            self.collapseInput()
+            self.controller?.updateChatPresentationInterfaceState(animated: true, interactive: false, { state in
+                return state.updatedInterfaceState { $0.withUpdatedReplyMessageSubject(nil).withUpdatedComposeInputState(ChatTextInputState(inputText: NSAttributedString(string: ""))).withUpdatedComposeDisableUrlPreviews([]) }
+            })
+            completion()
+            let destination = MokoSaveinatorDestination(peerId: peerId, threadId: threadId, replySubject: replySubject?.subjectModel, silent: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod)
+            MokoSaveinatorTransfer.start(context: context, link: link, choice: choice, destination: destination, send: { [weak self] messages in
+                guard let self else {
+                    return false
+                }
+                self.sendMessages(messages, silentPosting, scheduleTime, repeatPeriod, true, false)
+                return true
+            }, failed: { [weak self] in
+                self?.controller?.updateChatPresentationInterfaceState(animated: true, interactive: false, { state in
+                    guard state.interfaceState.composeInputState.inputText.length == 0 else {
+                        return state
+                    }
+                    return state.updatedInterfaceState { current in
+                        var result = current.withUpdatedComposeInputState(originalInputState)
+                        if current.replyMessageSubject == nil {
+                            result = result.withUpdatedReplyMessageSubject(replySubject)
+                        }
+                        return result
+                    }
+                })
+            })
+        })
+        return true
+    }
+
+    func sendCurrentMessage(silentPosting: Bool? = nil, scheduleTime: Int32? = nil, repeatPeriod: Int32? = nil, postpone: Bool = false, messageEffect: ChatSendMessageEffect? = nil, sendWithoutFormatting: Bool = false, skipSaveinator: Bool = false, completion: @escaping () -> Void = {}) {
         guard let textInputPanelNode = self.inputPanelNode as? ChatTextInputPanelNode else {
             return
         }
-        self.historyNode.justSentTextMessage = true
-        
         if let richTextInputNode = textInputPanelNode.richTextInputNode, richTextInputNode.isInputFirstResponder {
             richTextInputNode.applyAutocorrection()
         }
@@ -5036,6 +5092,211 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         if let textInputPanelNode = self.textInputPanelNode {
             effectivePresentationInterfaceState = effectivePresentationInterfaceState.updatedInterfaceState { $0.withUpdatedEffectiveInputState(textInputPanelNode.inputTextState) }
         }
+
+        let commandsAllowedInChat: Bool
+        switch self.chatLocation {
+        case .peer, .replyThread:
+            commandsAllowedInChat = true
+        case .customChatContents:
+            commandsAllowedInChat = false
+        }
+        if commandsAllowedInChat, effectivePresentationInterfaceState.interfaceState.editMessage == nil,
+           MokoQuickCommands.enabled(accountId: self.context.account.peerId.toInt64()),
+           let command = MokoQuickCommands.parse(effectivePresentationInterfaceState.interfaceState.composeInputState.inputText.string, accountId: self.context.account.peerId.toInt64()) {
+            guard effectivePresentationInterfaceState.interfaceState.composeInputState.content.isEntityExpressible() else {
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                self.controllerInteraction.displayUndo(.info(title: nil, text: russian ? "Команда не поддерживает такое форматирование." : "This command does not support this formatting.", timeout: nil, customUndoText: nil))
+                return
+            }
+            let commandName = command.name
+            if commandName == ".calc" {
+                let expression = command.argument
+                if let result = MokoQuickCommands.calculate(expression) {
+                    let replacement = "\(expression) = \(result)"
+                    let length = (replacement as NSString).length
+                    self.interfaceInteraction?.updateTextInputStateAndMode { _, mode in
+                        return (ChatTextInputState(inputText: NSAttributedString(string: replacement), selectionRange: length ..< length), mode)
+                    }
+                } else if let controller = self.controller {
+                    let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                    controller.present(textAlertController(context: self.context, title: nil, text: russian ? "Не получилось посчитать выражение." : "Could not calculate the expression.", actions: [TextAlertAction(type: .defaultAction, title: effectivePresentationInterfaceState.strings.Common_OK, action: {})]), in: .window(.root))
+                }
+                return
+            } else if commandName == ".snip" {
+                guard let interfaceInteraction = self.interfaceInteraction else { return }
+                let accountId = self.context.account.peerId.toInt64()
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                let argument = command.argument
+                let firstEnd = argument.firstIndex(where: { $0.isWhitespace }) ?? argument.endIndex
+                let first = String(argument[..<firstEnd]).lowercased()
+                let rest = String(argument[firstEnd...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let snippets = MokoSnippets.all(accountId: accountId)
+                let message: String
+                let success: Bool
+                if first.isEmpty || first == "list" {
+                    let names = snippets.keys.sorted().map { ";\($0)" }.joined(separator: ", ")
+                    message = names.isEmpty ? (russian ? "Сниппетов пока нет." : "No snippets yet.") : names
+                    success = true
+                } else if first == "del" {
+                    if snippets[rest.lowercased()] != nil, MokoSnippets.save(name: rest, text: "", accountId: accountId) {
+                        message = russian ? "Сниппет удалён." : "Snippet deleted."
+                        success = true
+                    } else {
+                        message = russian ? "Сниппет не найден." : "Snippet not found."
+                        success = false
+                    }
+                } else if rest.isEmpty {
+                    if let value = snippets[first] {
+                        message = String(value.prefix(200))
+                        success = true
+                    } else {
+                        message = russian ? "Сниппет не найден." : "Snippet not found."
+                        success = false
+                    }
+                } else if MokoSnippets.save(name: first, text: rest, accountId: accountId) {
+                    message = russian ? "Сохранено: ;\(first)" : "Saved: ;\(first)"
+                    success = true
+                } else {
+                    message = russian ? "Имя: от 1 до 24 букв, цифр или символов _." : "Name: 1–24 letters, numbers or underscores."
+                    success = false
+                }
+                if success {
+                    interfaceInteraction.updateTextInputStateAndMode { _, mode in
+                        return (ChatTextInputState(inputText: NSAttributedString(string: "")), mode)
+                    }
+                }
+                self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                return
+            } else if commandName == ".tag" || commandName == ".note" {
+                guard let interfaceInteraction = self.interfaceInteraction else { return }
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                guard let peerId = self.chatLocation.peerId, peerId.namespace == Namespaces.Peer.CloudUser, peerId != self.context.account.peerId else {
+                    let message = russian ? "Команда доступна в обычном личном чате." : "This command is available in a regular private chat."
+                    self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    return
+                }
+                let accountId = self.context.account.peerId.toInt64()
+                let id = peerId.toInt64()
+                let value = command.argument
+                let existing = MokoLocalPeerNotes.load(accountId: accountId, peerId: id)
+                MokoLocalPeerNotes.save(accountId: accountId, peerId: id, tag: commandName == ".tag" ? value : existing.tag, note: commandName == ".note" ? value : existing.note)
+                interfaceInteraction.updateTextInputStateAndMode { _, mode in
+                    return (ChatTextInputState(inputText: NSAttributedString(string: "")), mode)
+                }
+                let message = value.isEmpty ? (russian ? "Удалено." : "Removed.") : (russian ? "Сохранено на устройстве." : "Saved on this device.")
+                self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                return
+            } else if commandName == ".id" {
+                guard let interfaceInteraction = self.interfaceInteraction else { return }
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                guard command.argument.isEmpty, let peerId = self.chatLocation.peerId else {
+                    let message = russian ? "Используйте .id без аргументов." : "Use .id without arguments."
+                    self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    return
+                }
+                var lines = ["\(russian ? "ID чата" : "Chat ID"): \(peerId.id._internalGetInt64Value())"]
+                if let reply = effectivePresentationInterfaceState.replyMessage {
+                    lines.append("\(russian ? "ID сообщения" : "Message ID"): \(reply.id.id)")
+                    if let author = reply.author {
+                        lines.append("\(russian ? "ID автора" : "Author ID"): \(author.id.id._internalGetInt64Value())")
+                    }
+                } else if peerId.namespace == Namespaces.Peer.CloudUser {
+                    lines.append("\(russian ? "ID пользователя" : "User ID"): \(peerId.id._internalGetInt64Value())")
+                }
+                UIPasteboard.general.string = lines.joined(separator: "\n")
+                interfaceInteraction.updateTextInputStateAndMode { _, mode in
+                    return (ChatTextInputState(inputText: NSAttributedString(string: "")), mode)
+                }
+                self.controllerInteraction.displayUndo(.info(title: nil, text: russian ? "ID скопированы." : "IDs copied.", timeout: nil, customUndoText: nil))
+                return
+            } else if commandName == ".archive" || commandName == ".unarchive" {
+                guard let interfaceInteraction = self.interfaceInteraction else { return }
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                guard command.argument.isEmpty, case let .peer(peerId) = self.chatLocation, peerId != self.context.account.peerId else {
+                    let message = russian ? "Команду без аргументов можно использовать в основном чате." : "Use this command without arguments in a main chat."
+                    self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    return
+                }
+                let groupId: EngineChatList.Group = commandName == ".archive" ? .archive : .root
+                interfaceInteraction.updateTextInputStateAndMode { _, mode in
+                    return (ChatTextInputState(inputText: NSAttributedString(string: "")), mode)
+                }
+                let message = commandName == ".archive" ? (russian ? "Перемещение в архив запрошено." : "Move to archive requested.") : (russian ? "Возврат из архива запрошен." : "Removal from archive requested.")
+                let _ = (self.context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: groupId)
+                |> deliverOnMainQueue).startStandalone(completed: { [weak self] in
+                    self?.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                })
+                return
+            } else if commandName == ".mute" || commandName == ".unmute" {
+                guard let interfaceInteraction = self.interfaceInteraction else { return }
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                guard let peerId = self.chatLocation.peerId, peerId != self.context.account.peerId,
+                      effectivePresentationInterfaceState.interfaceState.replyMessageSubject == nil else {
+                    let message = russian ? "Команда меняет уведомления чата; ограничения участников пока не поддерживаются." : "This command changes chat notifications; participant restrictions are not supported yet."
+                    self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    return
+                }
+                let interval: Int32
+                if commandName == ".unmute" {
+                    guard command.argument.isEmpty else {
+                        self.controllerInteraction.displayUndo(.info(title: nil, text: russian ? "Используйте .unmute без аргументов." : "Use .unmute without arguments.", timeout: nil, customUndoText: nil))
+                        return
+                    }
+                    interval = 0
+                } else if let duration = MokoQuickCommands.muteDuration(command.argument) {
+                    interval = duration
+                } else {
+                    let message = russian ? "Укажите время до года: например, .mute 30m или .mute 2h." : "Use a duration up to one year, such as .mute 30m or .mute 2h."
+                    self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    return
+                }
+                interfaceInteraction.updateTextInputStateAndMode { _, mode in
+                    return (ChatTextInputState(inputText: NSAttributedString(string: "")), mode)
+                }
+                let message = commandName == ".mute" ? (russian ? "Уведомления отключаются." : "Muting notifications.") : (russian ? "Уведомления включаются." : "Unmuting notifications.")
+                let _ = (self.context.engine.peers.updatePeerMuteSetting(peerId: peerId, threadId: self.chatLocation.threadId, muteInterval: interval)
+                |> deliverOnMainQueue).startStandalone(completed: { [weak self] in
+                    self?.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                })
+                return
+            } else if commandName == ".save" {
+                guard let interfaceInteraction = self.interfaceInteraction else { return }
+                let russian = effectivePresentationInterfaceState.strings.baseLanguageCode == "ru"
+                guard command.argument.isEmpty, let reply = effectivePresentationInterfaceState.replyMessage else {
+                    let message = russian ? "Ответьте командой .save на сообщение." : "Reply to a message with .save."
+                    self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    return
+                }
+                let originalText = effectivePresentationInterfaceState.interfaceState.composeInputState.inputText.string
+                let context = self.context
+                let _ = (chatAvailableMessageActionsImpl(engine: context.engine, accountPeerId: context.account.peerId, messageIds: Set([reply.id]), keepUpdated: false)
+                |> deliverOnMainQueue).startStandalone(next: { [weak self] actions in
+                    guard let self else { return }
+                    guard actions.options.contains(.forward) else {
+                        let message = russian ? "Это сообщение нельзя переслать." : "This message cannot be forwarded."
+                        self.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                        return
+                    }
+                    interfaceInteraction.updateTextInputStateAndMode { state, mode in
+                        if state.inputText.string == originalText {
+                            return (ChatTextInputState(inputText: NSAttributedString(string: "")), mode)
+                        }
+                        return (state, mode)
+                    }
+                    let forward = EnqueueMessage.forward(source: reply.id, threadId: nil, grouping: .auto, attributes: [], correlationId: nil)
+                    let _ = (enqueueMessages(account: context.account, peerId: context.account.peerId, messages: [forward])
+                    |> deliverOnMainQueue).startStandalone(next: { [weak self] _ in
+                        let message = russian ? "Отправляется в «Избранное»." : "Sending to Saved Messages."
+                        self?.controllerInteraction.displayUndo(.info(title: nil, text: message, timeout: nil, customUndoText: nil))
+                    })
+                })
+                return
+            }
+        }
+        if !skipSaveinator, self.offerSaveinatorDownload(state: effectivePresentationInterfaceState, silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, postpone: postpone, messageEffect: messageEffect, sendWithoutFormatting: sendWithoutFormatting, completion: completion) {
+            return
+        }
+        self.historyNode.justSentTextMessage = true
         
         if let _ = effectivePresentationInterfaceState.interfaceState.editMessage, effectivePresentationInterfaceState.interfaceState.postSuggestionState == nil {
             self.interfaceInteraction?.editMessage()
@@ -5229,11 +5490,25 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             if peerId?.namespace != Namespaces.Peer.SecretChat, let interactiveEmojis = self.interactiveEmojis, interactiveEmojis.emojis.contains(trimmedInputText), effectiveInputText.attribute(ChatTextInputAttributes.customEmoji, at: 0, effectiveRange: nil) == nil {
                 messages.append(.message(text: "", attributes: [], inlineStickers: [:], mediaReference: AnyMediaReference.standalone(media: TelegramMediaDice(emoji: trimmedInputText)), threadId: self.chatLocation.threadId, replyToMessageId: self.chatPresentationInterfaceState.interfaceState.replyMessageSubject?.subjectModel, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
             } else {
-                let inputText = convertMarkdownToAttributes(effectiveInputText)
+                let expandedText: NSAttributedString
+                let allowsSnippets: Bool
+                switch self.chatLocation {
+                case .peer, .replyThread:
+                    allowsSnippets = true
+                case .customChatContents:
+                    allowsSnippets = false
+                }
+                if isNewMessage && !sendAsRichMessage && allowsSnippets {
+                    expandedText = MokoSnippets.expand(effectiveInputText, accountId: self.context.account.peerId.toInt64())
+                } else {
+                    expandedText = effectiveInputText
+                }
+                let snippetChangedText = expandedText.string != effectiveInputText.string
+                let inputText = convertMarkdownToAttributes(expandedText)
                 
                 var mediaReference: AnyMediaReference?
                 var webpage: TelegramMediaWebpage?
-                if let urlPreview = self.chatPresentationInterfaceState.urlPreview {
+                if !snippetChangedText, let urlPreview = self.chatPresentationInterfaceState.urlPreview {
                     if self.chatPresentationInterfaceState.interfaceState.composeDisableUrlPreviews.contains(urlPreview.url) {
                     } else {
                         webpage = urlPreview.webPage
@@ -5298,7 +5573,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                             if let urlPreview = self.chatPresentationInterfaceState.urlPreview {
                                 if self.chatPresentationInterfaceState.interfaceState.composeDisableUrlPreviews.contains(urlPreview.url) {
                                     attributes.append(OutgoingContentInfoMessageAttribute(flags: [.disableLinkPreviews]))
-                                } else {
+                                } else if !snippetChangedText {
                                     attributes.append(WebpagePreviewMessageAttribute(leadingPreview: !urlPreview.positionBelowText, forceLargeMedia: urlPreview.largeMedia, isManuallyAdded: true, isSafe: false))
                                 }
                             }

@@ -12,6 +12,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/Moko/MokoCore",
         "//submodules/TelegramApi:TelegramApi",
         "//submodules/MtProtoKit:MtProtoKit",
         "//submodules/MediaPreuploadRegistry:MediaPreuploadRegistry",

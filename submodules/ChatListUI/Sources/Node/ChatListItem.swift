@@ -29,6 +29,7 @@ import MultilineTextComponent
 import MultilineTextWithEntitiesComponent
 import ShimmerEffect
 import GlassBackgroundComponent
+import MokoCore
 
 public enum ChatListItemContent {
     public final class ThreadInfo: Equatable {
@@ -1448,6 +1449,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     
     private var hierarchyTrackingLayer: HierarchyTrackingLayer?
     private var cachedDataDisposable = MetaDisposable()
+    private var mokoNoteObserver: NSObjectProtocol?
+    private var mokaBadgesObserver: NSObjectProtocol?
     
     private var currentTextLeftCutout: CGFloat = 0.0
     private var currentMediaPreviewSpecs: [ContentImageSpec] = []
@@ -1524,6 +1527,12 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         result += item.presentationData.strings.DialogList_SavedMessages
                     } else {
                         result += chatMainPeer.displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder)
+                    }
+                    if case .user = chatMainPeer, chatMainPeer.id != item.context.account.peerId {
+                        let tag = MokoLocalPeerNotes.load(accountId: item.context.account.peerId.toInt64(), peerId: chatMainPeer.id.toInt64()).tag
+                        if !tag.isEmpty {
+                            result += "\n\(tag)"
+                        }
                     }
                     if let combinedReadState = peerData.combinedReadState, combinedReadState.count > 0 {
                         result += "\n\(item.presentationData.strings.VoiceOver_Chat_UnreadMessages(combinedReadState.count))"
@@ -1781,6 +1790,25 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 let _ = apply(false, false)
             }
         })
+        self.mokaBadgesObserver = NotificationCenter.default.addObserver(forName: mokaBadgesChangedNotificationName, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self, self.item != nil, let layoutParams = self.layoutParams else {
+                return
+            }
+            let (_, apply) = self.asyncLayout()(layoutParams.0, layoutParams.6, layoutParams.1, layoutParams.2, layoutParams.3, layoutParams.4, layoutParams.5)
+            apply(false, false)
+        })
+        self.mokoNoteObserver = NotificationCenter.default.addObserver(forName: MokoLocalPeerNotes.changed, object: nil, queue: .main, using: { [weak self] notification in
+            guard let self, let item = self.item, case let .peer(peerData) = item.content,
+                  let peer = peerData.peer.chatOrMonoforumMainPeer,
+                  let accountId = notification.userInfo?["accountId"] as? Int64,
+                  let peerId = notification.userInfo?["peerId"] as? Int64,
+                  accountId == item.context.account.peerId.toInt64(), peerId == peer.id.toInt64(),
+                  let layoutParams = self.layoutParams else {
+                return
+            }
+            let (_, apply) = self.asyncLayout()(layoutParams.0, layoutParams.6, layoutParams.1, layoutParams.2, layoutParams.3, layoutParams.4, layoutParams.5)
+            apply(false, false)
+        })
         
         self.contextContainer.shouldBegin = { [weak self] location in
             guard let strongSelf = self, let item = strongSelf.item else {
@@ -1830,6 +1858,12 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
 
     deinit {
         self.cachedDataDisposable.dispose()
+        if let mokoNoteObserver = self.mokoNoteObserver {
+            NotificationCenter.default.removeObserver(mokoNoteObserver)
+        }
+        if let mokaBadgesObserver = self.mokaBadgesObserver {
+            NotificationCenter.default.removeObserver(mokaBadgesObserver)
+        }
     }
     
     override public func secondaryAction(at point: CGPoint) {
@@ -3342,6 +3376,15 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 case .group:
                     titleAttributedString = NSAttributedString(string: item.presentationData.strings.ChatList_ArchivedChatsTitle, font: titleFont, textColor: theme.titleColor)
             }
+
+            if case let .chat(itemPeer, threadInfo, _, _, _, _, _, _, _) = contentData,
+               threadInfo == nil, !displayAsMessage, let peer = itemPeer.chatOrMonoforumMainPeer,
+               case .user = peer, peer.id != item.context.account.peerId, titleBadgeText == nil {
+                let tag = MokoLocalPeerNotes.load(accountId: item.context.account.peerId.toInt64(), peerId: peer.id.toInt64()).tag
+                if !tag.isEmpty {
+                    titleBadgeText = tag
+                }
+            }
             
             attributedText = renderInstantPagePreviewIcons(attributedText, font: textFont, textColor: theme.messageTextColor)
             textAttributedString = attributedText
@@ -3587,7 +3630,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                                 currentCredibilityIconContent = .premium(color: item.presentationData.theme.list.itemAccentColor)
                             }
                             
-                            if peer.isVerified {
+                            if peer.isVerifiedForDisplay {
                                 currentCredibilityIconContent = .verified(fillColor: item.presentationData.theme.list.itemCheckColors.fillColor, foregroundColor: item.presentationData.theme.list.itemCheckColors.foregroundColor, sizeType: .compact)
                             }
                             if let verificationIconFileId = peer.verificationIconFileId {
@@ -3618,7 +3661,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         currentCredibilityIconContent = .premium(color: item.presentationData.theme.list.itemAccentColor)
                     }
                     
-                    if peer.isVerified {
+                    if peer.isVerifiedForDisplay {
                         currentCredibilityIconContent = .verified(fillColor: item.presentationData.theme.list.itemCheckColors.fillColor, foregroundColor: item.presentationData.theme.list.itemCheckColors.foregroundColor, sizeType: .compact)
                     }
                     if let verificationIconFileId = peer.verificationIconFileId {
