@@ -317,6 +317,7 @@ public final class ChatTitleComponent: Component {
         private var statusIcon: ComponentView<Empty>?
         
         private var presenceManager: PeerPresenceStatusManager?
+        private var mokaBadgesObserver: NSObjectProtocol?
         
         private var component: ChatTitleComponent?
         private weak var state: EmptyComponentState?
@@ -339,10 +340,21 @@ public final class ChatTitleComponent: Component {
                 return .waitForSingleTap
             }
             self.contentContainer.addGestureRecognizer(recognizer)
+            
+            self.mokaBadgesObserver = NotificationCenter.default.addObserver(forName: mokaBadgesChangedNotificationName, object: nil, queue: .main, using: { [weak self] _ in
+                // The badge icon comes from the badge list, not from the peer: lay the title out again.
+                self?.state?.updated(transition: .immediate)
+            })
         }
         
         required init?(coder: NSCoder) {
             fatalError("init(coder:) has not been implemented")
+        }
+        
+        deinit {
+            if let mokaBadgesObserver = self.mokaBadgesObserver {
+                NotificationCenter.default.removeObserver(mokaBadgesObserver)
+            }
         }
         
         @objc private func onTapGesture(_ recognizer: TapLongTapOrDoubleTapGestureRecognizer) {

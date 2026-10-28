@@ -566,7 +566,12 @@ func infoItems(
                     }))
                 }
                                 
-                if let verification = (data.cachedData as? CachedUserData)?.verification {
+                var effectiveVerification = (data.cachedData as? CachedUserData)?.verification
+                if user.botInfo == nil, let badgeIconFileId = user.mokaBadgeIconFileId, let badgeText = MokoBadges.signatureText(userId: user.id.id._internalGetInt64Value(), username: user.username, languageCode: presentationData.strings.baseLanguageCode) {
+                    // A mokaGram badge holder gets the badge's icon and signature in place of any server verification.
+                    effectiveVerification = PeerVerification(botId: user.id, iconFileId: badgeIconFileId, description: badgeText, descriptionEntities: [])
+                }
+                if let verification = effectiveVerification {
                     let attributedPrefix = NSMutableAttributedString(string: "  ")
                     attributedPrefix.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: verification.iconFileId, file: nil), range: NSMakeRange(0, 1))
                     
