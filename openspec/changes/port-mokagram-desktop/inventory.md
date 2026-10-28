@@ -239,6 +239,11 @@ The Python plugin host IS ported, with Desktop compatibility (design.md 4.10): d
 | Rounded window shadows, profile window background and corner radii (`1a5d5c3704`, `8a0cb3e8e9`) | Desktop window chrome. |
 | `lib_ui.patch`, `lib_webview.patch` | Qt-library patches. |
 | Ed25519-signed self-update (`update/`) | The App Store / TestFlight / IPA channel replaces it; only the signature scheme may be reused for plugin or settings packages. |
+| `misc.max_accounts` | iOS has no per-process account limit to raise. |
+| Hang monitor, toaster mode, memory give-back | Desktop process and memory tuning; iOS manages these itself. |
+| Debug commands `fxtest`, `wheel`, `setint` | Desktop-only debugging aids. |
+| Window and card styling | Desktop window chrome, no iOS counterpart. |
+| DMA-BUF in WebKitGTK | Linux-only WebKit setting. |
 
 ## Gaps closed by section 8 of tasks.md
 
