@@ -8,7 +8,7 @@ On Desktop, sending a message that is just a link to a supported service (YouTub
 - Choice of what to download (everything / video only / ...; max video height), as in Desktop's `Choice { media, maxHeight }`.
 - Download through the Saveinator API, then send the result as media to the same chat, honouring the send options already chosen (reply, silent, scheduled, thread).
 - A setting to enable/disable the offer (Desktop key `saveinator.enabled`).
-- Optional, not confirmed with the user: a "Download via Saveinator" action in the message context menu for messages that contain a supported link.
+- Confirmed by the user and implemented (4.2): a "Download via Saveinator" action in the message context menu for messages that contain a supported link.
 
 ## Capabilities
 

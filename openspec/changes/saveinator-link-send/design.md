@@ -27,3 +27,14 @@ iOS has no Saveinator code and no registry entry yet. Settings live in `MokoCore
 - Embedded API key can be extracted from the IPA; server-side rate limiting is the only real protection.
 - Large downloads and memory: stream to a temp file, do not hold the whole video in memory.
 - Upload of the result must respect the account's file size limits and show a clear error otherwise.
+
+## Inline links in messages (4.2)
+
+The same offer is available for links that already sit in a message. `MokoSaveinatorOffer.link(inMessage:)`
+returns the first supported link (`url`/`textUrl` entities in order, a plain text scan when there are no
+entities), and only when `saveinator.enabled` is on and a key is configured (`isAvailable`).
+`presentForLinkInMessage` reuses the same media/quality sheets (without the "send as text" choice) and
+`MokoSaveinatorTransfer.start` with the current chat (`peerId`/`threadId`) as the destination; the files are
+enqueued straight into that chat and the input field is not touched. Entry points: the message context
+menu (`ChatInterfaceStateContextMenus.swift`, next to copy) and the long-press menu of the link
+(`ChatControllerOpenLinkContextMenu.swift`). Hidden in scheduled-messages and custom-contents chats.
