@@ -48,9 +48,9 @@ public enum MokoSaveinatorEvent: Equatable {
 public enum MokoSaveinator {
     static let maxFiles = 10
     static let maxJsonSize = 64 * 1024
-    static let maxFileSize: Int64 = 2 * 1024 * 1024 * 1024
+    static let maxFileSize: Int64 = 4 * 1024 * 1024 * 1024
     static let maxPollFailures = 3
-    static let overallTimeout: TimeInterval = 5.0 * 60.0
+    static let overallTimeout: TimeInterval = 30.0 * 60.0
 
     private static let extensions: [String: String] = [
         "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
