@@ -477,10 +477,7 @@ public final class MokoMusicSearchPanelView: UIView, UITableViewDataSource, UITa
         }
         let track = tracks[indexPath.row]
         cell.configure(track: track, liked: MokoMusicContext.shared.library.isLiked(track.id), playing: track.id == self.playingTrackId, theme: self.theme)
-        cell.onLike = { [weak self] in
-            guard let self else {
-                return
-            }
+        cell.onLike = {
             let library = MokoMusicContext.shared.library
             library.setLiked(track, !library.isLiked(track.id))
         }
