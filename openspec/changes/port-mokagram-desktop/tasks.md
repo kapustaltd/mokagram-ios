@@ -21,7 +21,7 @@
 - [ ] 3.4 Port story-view suppression and verify server interactions. Ordinary and pinned view paths now have account-scoped controls; request-level and device tests remain.
 - [ ] 3.5 Port ghost schedules and per-control settings, including overnight schedules. Schedule model (overnight windows, per-account storage) and schedule-aware privacy getters implemented and host-tested (8 tests); settings UI, boundary timer that re-evaluates online presence, and device verification pending.
 - [ ] 3.6 Port hiding blocked senders in groups and related history filters.
-- [ ] 3.7 Port streamer mode masking for phone, usernames, links, IDs, names, notifications and copy behavior.
+- [ ] 3.7 Port streamer mode masking for phone, usernames, links, IDs, names, notifications and copy behavior. Progress: masking rules (phone, username, link, ID, name), copy modes and the `streamer.*` settings are ported with host tests (`MokoStreamer`, 8 tests); Wired (unbuilt) into the Settings screen phone and username rows in `PeerInfoSettingsItems.swift`; profile header, invite links, usernames list, notification extension, copy actions and device verification pending.
 - [ ] 3.8 Port scam warnings and guard protections for strangers, threats, stickers and mass-add events.
 
 ## 4. History and messages
@@ -65,7 +65,7 @@ These modules or recent commits had no task above. Each one is a user-visible De
 - [ ] 8.2 Port mokaGram badges (`Badges`, commits `106caaa67d`…`b9068b31ba`, `732c9b00b6`): the issued-badge list obtained from the badge bot by inline query without sending messages, disk cache, periodic and on-foreground refresh, retry on missing session, per-user look and caption for levels 2 and 3, team/support variants. Extends 2.5; define how a badge renders next to the iOS verification and emoji-status marks.
 - [ ] 8.3 Port Guard (`scam/`, `Guard`): fake-offer detection for messages with link buttons, warning banner on the message, interception of hidden-link / mini-app / escrow-bot links with "open anyway", and the per-person threat exemption list. Extends 3.8.
 - [ ] 8.4 Port the DC ping check (`misc/mokagram_ping`, `.ping`) as a screen and as a quick command.
-- [ ] 8.5 Port miscellany from `misc/`: account-count limit setting (`misc.max_accounts`), sticker from photo, probable pack-owner lookup (explicitly a heuristic), "copy with author" (`[date time] author: text`), and brand rewriting of "Telegram" strings where it is legal and accurate.
+- [ ] 8.5 Port miscellany from `misc/`: account-count limit setting (`misc.max_accounts`), sticker from photo, probable pack-owner lookup (explicitly a heuristic), "copy with author" (`[date time] author: text`), and brand rewriting of "Telegram" strings where it is legal and accurate. Progress: copy-with-author formatter and the sticker-set owner heuristic are in `MokoMisc` with host tests; `misc.max_accounts` is intentionally not ported (see inventory); A "Copy with author" message context-menu action is added in `ChatInterfaceStateContextMenus.swift` (not built or device-verified); sticker from photo and brand rewriting pending.
 - [ ] 8.6 Port localization behavior (`lang/`): Russian text as the key, English fallback for languages without a translation, system language enabled automatically on first launch. Decide how this maps to iOS `PresentationStrings`.
 - [ ] 8.7 Port the first-run window (commit `151b7e1e20`): one-time choice of hiding story views, keeping deleted messages and scam protection. All choices default to off until the user opts in.
 - [ ] 8.8 Port the delete-messages and send-files dialog additions (`BoxParts`: ~10 and ~16 Desktop markers) as native iOS action sheets, with pill-style actions and accessible labels.
@@ -73,4 +73,4 @@ These modules or recent commits had no task above. Each one is a user-visible De
 - [ ] 8.10 Port the report dialog additions (`ui/mokagram_report_box`) alongside 4.4.
 - [ ] 8.11 Port small chat UI changes: sent-message font setting, slash-command menu styling, poll and checklist layout (`510b97c3dc`, `3a26e0899b`), pill tabs for emoji/stickers/GIFs, hex colour picker with `#RRGGBB` hint, GIF and sticker autoplay settings, settings search.
 - [ ] 8.12 Port the power-saving integration (`perf/`): background economy and "toaster" mode, tied to iOS Low Power Mode and app lifecycle. Folds into 6.3.
-- [ ] 8.13 Document every Desktop feature that has no iOS equivalent in `inventory.md` with its reason, so it is not mistaken for an unported gap (see "Not applicable on iOS" there).
+- [x] 8.13 Document every Desktop feature that has no iOS equivalent in `inventory.md` with its reason, so it is not mistaken for an unported gap (see "Not applicable on iOS" there).
