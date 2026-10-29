@@ -6,6 +6,8 @@ import TelegramPresentationData
 import MokoCore
 import MokoSaveinator
 import MokoSettingsUI
+import TelegramCore
+
 
 /// The choice shown when the user sends nothing but a link to a supported service (Desktop `ChooseBox`).
 public enum MokoSaveinatorOffer {
@@ -23,9 +25,68 @@ public enum MokoSaveinatorOffer {
         return MokoSaveinatorLink.loneLink(in: text)
     }
 
+    /// Whether the offer may be made at all: the setting is on and a key is configured.
+    public static var isAvailable: Bool {
+        return MokoSettings.bool("saveinator.enabled", accountId: 0) && MokoSaveinatorConfiguration.current() != nil
+    }
+
+    /// The first supported link in a message: `url`/`textUrl` entities in order, then a plain scan
+    /// of the text. Nil when the offer is unavailable or the message holds no supported link.
+    public static func link(inMessage message: EngineRawMessage) -> String? {
+        guard isAvailable else {
+            return nil
+        }
+        let text = message.text
+        let nsText = text as NSString
+        var candidates: [String] = []
+        for attribute in message.attributes {
+            guard let attribute = attribute as? TextEntitiesMessageAttribute else {
+                continue
+            }
+            for entity in attribute.entities.sorted(by: { $0.range.lowerBound < $1.range.lowerBound }) {
+                switch entity.type {
+                case .Url:
+                    let range = NSRange(location: entity.range.lowerBound, length: entity.range.count)
+                    if range.location >= 0, NSMaxRange(range) <= nsText.length {
+                        candidates.append(nsText.substring(with: range))
+                    }
+                case let .TextUrl(url):
+                    candidates.append(url)
+                default:
+                    break
+                }
+            }
+        }
+        if candidates.isEmpty, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+            for match in detector.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length)) {
+                if let url = match.url?.absoluteString {
+                    candidates.append(url)
+                }
+            }
+        }
+        for candidate in candidates {
+            if let link = MokoSaveinatorLink.normalized(candidate.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                return link
+            }
+        }
+        return nil
+    }
+
+    /// "Download by link" for a link that already sits in a message (context menus): asks for the
+    /// media and quality, then sends the files to `peerId`/`threadId`. The input field is untouched.
+    public static func presentForLinkInMessage(context: AccountContext, link: String, peerId: EnginePeer.Id, threadId: Int64?) {
+        present(context: context, link: link, sendAsText: nil, download: { choice in
+            let destination = MokoSaveinatorDestination(peerId: peerId, threadId: threadId, replySubject: nil, silent: nil, scheduleTime: nil, repeatPeriod: nil)
+            MokoSaveinatorTransfer.start(context: context, link: link, choice: choice, destination: destination, send: { messages in
+                let _ = enqueueMessages(account: context.account, peerId: peerId, messages: messages).startStandalone()
+                return true
+            }, failed: {})
+        })
+    }
+
     /// `sendAsText` sends the original message; `download` starts the download with the chosen
     /// options. Dismissing the sheet does neither and leaves the text in the input field.
-    public static func present(context: AccountContext, link: String, sendAsText: @escaping () -> Void, download: @escaping (MokoSaveinatorChoice) -> Void) {
+    public static func present(context: AccountContext, link: String, sendAsText: (() -> Void)?, download: @escaping (MokoSaveinatorChoice) -> Void) {
         let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
         let host = MokoSaveinatorLink.host(of: link)
         let path = URLComponents(string: link)?.path ?? ""
@@ -51,9 +112,11 @@ public enum MokoSaveinatorOffer {
                 }
             }))
         }
-        sheet.addAction(UIAlertAction(title: strings.moko("Ссылкой"), style: .default, handler: { _ in
-            sendAsText()
-        }))
+        if let sendAsText {
+            sheet.addAction(UIAlertAction(title: strings.moko("Ссылкой"), style: .default, handler: { _ in
+                sendAsText()
+            }))
+        }
         sheet.addAction(UIAlertAction(title: strings.moko("Отмена"), style: .cancel, handler: nil))
         present(context, sheet)
     }

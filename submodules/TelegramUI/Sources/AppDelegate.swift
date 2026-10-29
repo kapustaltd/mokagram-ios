@@ -2037,6 +2037,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
 
     func handleDidEnterBackground() {
+        MokoBadges.stopLiveUpdates()
         let _ = (self.sharedContextPromise.get()
         |> take(1)
         |> deliverOnMainQueue).start(next: { sharedApplicationContext in
@@ -2122,6 +2123,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         self.isActivePromise.set(true)
 
         MokoBadges.refresh()
+        MokoBadges.startLiveUpdates()
         self.resetBadge()
         
         self.maybeCheckForUpdates()

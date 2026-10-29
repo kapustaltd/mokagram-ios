@@ -18,4 +18,5 @@
 ## 4. Verification
 
 - [ ] 4.1 Simulator: lone supported link, link with text, unsupported host, setting off, failure
-- [ ] 4.2 Decide with the user whether to add the message-context-menu action
+- [x] 4.2 Message-context-menu action: confirmed by the user and implemented ("Скачать по ссылке" on a message with a supported url/textUrl link, and on the long-press menu of the link itself; the files go to the current chat and the input field is untouched)
+- [ ] 4.3 Simulator: the new actions (message menu, link menu, setting off / no key hides them)

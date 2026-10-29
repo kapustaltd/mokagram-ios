@@ -1,4 +1,6 @@
 import Foundation
+import MokoSaveinatorUI
+import MokoCore
 import UIKit
 import SwiftSignalKit
 import TelegramCore
@@ -395,6 +397,19 @@ extension ChatControllerImpl {
                     self.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: isEmail ? presentationData.strings.Conversation_EmailCopied : presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
                 }))
             )
+
+            if MokoSaveinatorOffer.isAvailable, let saveinatorLink = MokoSaveinatorLink.normalized(url), let saveinatorPeerId = self.chatLocation.peerId, self.chatDisplayNode.chatPresentationInterfaceState.subject != .scheduledMessages {
+                let saveinatorThreadId = self.chatLocation.threadId
+                items.append(
+                    .action(ContextMenuActionItem(text: self.presentationData.strings.moko("Скачать по ссылке"), icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Download"), color: theme.contextMenu.primaryColor) }, action: { [weak self] _, f in
+                        f(.default)
+                        guard let self else {
+                            return
+                        }
+                        MokoSaveinatorOffer.presentForLinkInMessage(context: self.context, link: saveinatorLink, peerId: saveinatorPeerId, threadId: saveinatorThreadId)
+                    }))
+                )
+            }
 
             if canAddToReadingList {
                 items.append(

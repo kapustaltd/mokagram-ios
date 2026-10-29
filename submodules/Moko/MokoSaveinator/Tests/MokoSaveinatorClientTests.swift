@@ -174,8 +174,11 @@ final class MokoSaveinatorClientTests: XCTestCase {
 
     func testRejectsTooLargeAndUnknownType() {
         let transport = FakeTransport()
-        transport.createReply = .init(status: 200, body: readyBody(files: [("", "video/mp4", 3 * 1024 * 1024 * 1024)]))
+        transport.createReply = .init(status: 200, body: readyBody(files: [("", "video/mp4", 5 * 1024 * 1024 * 1024)]))
         XCTAssertEqual(self.run(transport).error?.code, "too_large")
+        // The server serves files up to 2560 MB; they must pass the client's sanity check.
+        transport.createReply = .init(status: 200, body: readyBody(files: [("", "video/mp4", 2560 * 1024 * 1024)]))
+        XCTAssertNotEqual(self.run(transport).error?.code, "too_large")
         transport.createReply = .init(status: 200, body: readyBody(files: [("", "application/x-evil", 3)]))
         XCTAssertEqual(self.run(transport).error?.code, "failed")
     }

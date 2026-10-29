@@ -290,6 +290,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     let sourceMessageId: MessageId?
     var canDeleteReaction = false
     var dataDisposable: Disposable?
+    private var mokaBadgesObserver: NSObjectProtocol?
     
     let activeActionDisposable = MetaDisposable()
     let logoutConfirmationDisposable = MetaDisposable()
@@ -2468,6 +2469,14 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             strongSelf.cachedDataPromise.set(.single(data.cachedData))
         })
         
+        self.mokaBadgesObserver = NotificationCenter.default.addObserver(forName: mokaBadgesChangedNotificationName, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self, let data = self.data else {
+                return
+            }
+            // The badge icon and signature come from the badge list, not from the profile data: lay the profile out again.
+            self.updateData(data)
+        })
+        
         self.customStatusDisposable = (self.customStatusPromise.get()
         |> deliverOnMainQueue).startStrict(next: { [weak self] value in
             guard let strongSelf = self else {
@@ -2589,6 +2598,9 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     }
     
     deinit {
+        if let mokaBadgesObserver = self.mokaBadgesObserver {
+            NotificationCenter.default.removeObserver(mokaBadgesObserver)
+        }
         self.dataDisposable?.dispose()
         self.hiddenMediaDisposable?.dispose()
         self.activeActionDisposable.dispose()

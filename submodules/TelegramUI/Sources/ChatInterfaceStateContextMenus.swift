@@ -40,6 +40,7 @@ import AdsInfoScreen
 import AdsReportScreen
 import WalletContext
 import MokoCore
+import MokoSaveinatorUI
  
 private struct MessageContextMenuData {
     let starStatus: Bool?
@@ -704,6 +705,16 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                             controllerInteraction.displayUndo(.copy(text: chatPresentationInterfaceState.strings.Conversation_MessageCopied))
                         })
                         f(.default)
+                    })))
+                }
+
+                if let saveinatorLink = MokoSaveinatorOffer.link(inMessage: message), let saveinatorPeerId = chatPresentationInterfaceState.chatLocation.peerId, chatPresentationInterfaceState.subject != .scheduledMessages {
+                    let saveinatorThreadId = chatPresentationInterfaceState.chatLocation.threadId
+                    actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.moko("Скачать по ссылке"), icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Download"), color: theme.actionSheet.primaryTextColor)
+                    }, action: { _, f in
+                        f(.default)
+                        MokoSaveinatorOffer.presentForLinkInMessage(context: context, link: saveinatorLink, peerId: saveinatorPeerId, threadId: saveinatorThreadId)
                     })))
                 }
             }
